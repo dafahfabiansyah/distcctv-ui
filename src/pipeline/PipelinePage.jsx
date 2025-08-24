@@ -128,11 +128,11 @@ export default function PipelinePage() {
   }
 
   return (
-    <div className="flex-1 bg-gray-50 p-6">
+    <div className="flex-1 bg-white p-6">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-semibold text-gray-900">567 Leads</h1>
+          <h1 className="text-2xl font-semibold text-black">567 Leads</h1>
           <Button className="bg-crm-primary hover:bg-crm-primary-hover text-white">
             <Plus className="h-4 w-4 mr-2" />
             Add Lead
@@ -141,13 +141,13 @@ export default function PipelinePage() {
 
         {/* Filters */}
         <div className="flex items-center gap-4">
-          <Button variant="outline" className="text-gray-600 bg-transparent">
+          <Button variant="outline" className="text-black bg-transparent">
             All leads
           </Button>
-          <Button variant="outline" className="text-gray-600 bg-transparent">
+          <Button variant="outline" className="text-black bg-transparent">
             Create date
           </Button>
-          <Button variant="outline" className="text-gray-600 bg-transparent">
+          <Button variant="outline" className="text-black bg-transparent">
             Contact Owner
           </Button>
           <Button variant="outline" className="text-gray-600 bg-transparent">
@@ -164,8 +164,8 @@ export default function PipelinePage() {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <div className={`w-3 h-3 rounded-full ${stage.color}`}></div>
-                <h3 className="font-medium text-gray-900">{stage.name}</h3>
-                <Badge variant="secondary" className="bg-gray-100 text-gray-600">
+                <h3 className="font-medium text-black">{stage.name}</h3>
+                <Badge variant="secondary" className="bg-gray-100 text-black">
                   {stage.count} Leads
                 </Badge>
               </div>
@@ -191,7 +191,7 @@ export default function PipelinePage() {
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-gray-900 truncate">{lead.name}</h4>
+                        <h4 className="font-medium text-black truncate">{lead.name}</h4>
                         <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
                           <Clock className="h-3 w-3" />
                           <span className="truncate">{lead.time}</span>
@@ -268,31 +268,31 @@ export default function PipelinePage() {
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-500">Company</label>
-                <p className="text-sm text-gray-900 mt-1">{leadDetails.company}</p>
+                <p className="text-sm text-black mt-1">{leadDetails.company}</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-500">Job Title</label>
-                <p className="text-sm text-gray-900 mt-1">{leadDetails.jobTitle}</p>
+                <p className="text-sm text-black mt-1">{leadDetails.jobTitle}</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-500">Annual revenue</label>
-                <p className="text-sm text-gray-900 mt-1">{leadDetails.annualRevenue}</p>
+                <p className="text-sm text-black mt-1">{leadDetails.annualRevenue}</p>
               </div>
             </div>
 
             {/* Status Badges */}
             <div className="flex flex-wrap gap-2">
-              <Badge className="bg-green-100 text-green-800 hover:bg-green-100">✓ New</Badge>
-              <Badge className="bg-green-100 text-green-800 hover:bg-green-100">✓ Open</Badge>
-              <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">In Progress</Badge>
-              <Badge variant="outline" className="text-gray-600">Open deals</Badge>
-              <Badge variant="outline" className="text-gray-600">Closed</Badge>
+              <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">✓ New</Badge>
+              <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">✓ Open</Badge>
+              <Badge className="bg-red-100 text-red-800 hover:bg-red-100">In Progress</Badge>
+              <Badge variant="outline" className="text-black">Open deals</Badge>
+              <Badge variant="outline" className="text-black">Closed</Badge>
             </div>
 
             {/* Lead Source */}
             <div>
               <label className="text-sm font-medium text-gray-500">Lead source</label>
-              <p className="text-sm text-gray-900 mt-1">{leadDetails.leadSource}</p>
+              <p className="text-sm text-black mt-1">{leadDetails.leadSource}</p>
               <p className="text-sm text-gray-500 mt-1">Last activity: {leadDetails.lastActivity}</p>
             </div>
 
@@ -301,7 +301,7 @@ export default function PipelinePage() {
             {/* Upcoming Activity */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-medium text-gray-900">Upcoming Activity</h3>
+                <h3 className="font-medium text-black">Upcoming Activity</h3>
                 <Button variant="link" size="sm" className="text-crm-primary-text">
                   View all activity
                 </Button>

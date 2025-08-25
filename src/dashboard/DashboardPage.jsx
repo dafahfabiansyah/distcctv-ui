@@ -29,15 +29,15 @@ const chartData = {
    pieData: [
     { name: "John doe", value: 9999, color: "#00559a" }, // merah
     { name: "John doe", value: 9999, color: "#ffb401" }, // hijau muda
-    { name: "Nur Azijah", value: 9999, color: "#005499" }, // hijau
-    { name: "Indarwanti lin", value: 9999, color: "#22c55e" }, // biru
+    { name: "John doe", value: 9999, color: "#005499" }, // hijau
+    { name: "John doe", value: 9999, color: "#22c55e" }, // biru
     { name: "DISTCCTV AI", value: 9999, color: "#a855f7" } // ungu
   ],
   revenueData: [
     { name: "John doe", value: 9999, color: "#00559a" }, // merah
     { name: "John doe", value: 9999, color: "#ffb401" }, // hijau muda (dominan)
-    { name: "Nur Azijah", value: 9999, color: "#005499" }, // hijau
-    { name: "Indarwanti lin", value: 9999, color: "#22c55e" }, // biru
+    { name: "John doe", value: 9999, color: "#005499" }, // hijau
+    { name: "John doe", value: 9999, color: "#22c55e" }, // biru
     { name: "DISTCCTV AI", value: 9999, color: "#a855f7" } // ungu
   ],
   // Data baru untuk perbandingan kedua pie chart

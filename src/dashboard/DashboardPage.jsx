@@ -21,8 +21,6 @@ import {
   Calendar,
   BarChart3,
   PieChart,
-  LineChart,
-  Eye
 } from "lucide-react"
 
 // Sample dashboard data

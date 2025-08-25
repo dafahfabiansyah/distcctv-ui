@@ -11,8 +11,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Mail, Phone, Clock, Plus, MoreHorizontal, Eye, ArrowRight, GripVertical, Filter } from "lucide-react"
+import { Mail, Phone, Clock, Plus, MoreHorizontal, Eye, ArrowRight, GripVertical, Filter, MessageSquare } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import ChatInterface from "@/components/ChatInterface"
 
 // Sample data
 const stages = [
@@ -223,6 +224,7 @@ function StageColumn({ stage, leads, onLeadClick, onMoveLead }) {
 }
 
 export default function PipelinePage() {
+  const [activeTab, setActiveTab] = useState('details')
   const [leadsData, setLeadsData] = useState(initialLeads)
   const [selectedLead, setSelectedLead] = useState(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -433,132 +435,159 @@ export default function PipelinePage() {
                   <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>
-            </DrawerHeader>
-
-            <div className="px-6 py-6 space-y-6">
-              {/* Lead Info */}
-              <div className="flex items-start gap-4">
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={selectedLead?.avatar || leadDetails.avatar || "/placeholder.svg"} />
-                  <AvatarFallback>
-                    {(selectedLead?.name || leadDetails.name)
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <h2 className="text-xl font-semibold text-gray-900">{selectedLead?.name || leadDetails.name}</h2>
-                  <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-                    <div className="flex items-center gap-1">
-                      <Mail className="h-4 w-4" />
-                      {selectedLead?.email || leadDetails.email}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Phone className="h-4 w-4" />
-                      {selectedLead?.phone || leadDetails.phone}
-                    </div>
-                  </div>
-                </div>
-                <Button variant="ghost" size="sm">
-                  <MoreHorizontal className="h-4 w-4" />
+              
+              {/* Tab Navigation */}
+              <div className="flex gap-1 mt-4">
+                <Button 
+                  variant={activeTab === 'details' ? 'default' : 'ghost'} 
+                  size="sm"
+                  onClick={() => setActiveTab('details')}
+                >
+                  Details
+                </Button>
+                <Button 
+                  variant={activeTab === 'chat' ? 'default' : 'ghost'} 
+                  size="sm"
+                  onClick={() => setActiveTab('chat')}
+                >
+                  <MessageSquare className="h-4 w-4 mr-1" />
+                  Chat
                 </Button>
               </div>
-
-              {/* Lead Details Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Lead owner</label>
-                  <p className="text-sm text-gray-900 mt-1">{leadDetails.leadOwner}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Company</label>
-                  <p className="text-sm text-black mt-1">{leadDetails.company}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Job Title</label>
-                  <p className="text-sm text-black mt-1">{leadDetails.jobTitle}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Annual revenue</label>
-                  <p className="text-sm text-black mt-1">{leadDetails.annualRevenue}</p>
-                </div>
-              </div>
-
-              {/* Status Badges */}
-              <div className="flex flex-row w-full">
-                <Badge className="bg-green-100 text-green-800 hover:bg-green-100 rounded-r-none border-r-0 flex-1 justify-center">✓ New</Badge>
-                <Badge className="bg-green-100 text-green-800 hover:bg-green-100 rounded-none border-r-0 flex-1 justify-center">✓ Open</Badge>
-                <Badge className="bg-green-100 text-green-800 hover:bg-green-100 rounded-none border-r-0 flex-1 justify-center">In Progress</Badge>
-                <Badge variant="outline" className="text-gray-600 bg-gray-50 rounded-none border-r-0 flex-1 justify-center">Open deals</Badge>
-                <Badge variant="outline" className="text-gray-600 bg-gray-50 rounded-l-none flex-1 justify-center">Closed</Badge>
-              </div>
-
-              {/* Lead Source */}
-              <div>
-                <label className="text-sm font-medium text-gray-500">Lead source</label>
-                <p className="text-sm text-black mt-1">{leadDetails.leadSource}</p>
-                <p className="text-sm text-gray-500 mt-1">Last activity: {leadDetails.lastActivity}</p>
-              </div>
-
-              <Separator />
-
-              {/* Upcoming Activity */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-medium text-black">Upcoming Activity</h3>
-                  <Button variant="link" size="sm" className="text-crm-primary">
-                    View all activity
-                  </Button>
-                </div>
-
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h4 className="font-medium text-gray-900 mb-2">{leadDetails.upcomingActivity.title}</h4>
-                  <p className="text-sm text-gray-600 mb-3">{leadDetails.upcomingActivity.description}</p>
-
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <label className="text-gray-500">Reminder</label>
-                      <p className="text-gray-900">{leadDetails.upcomingActivity.reminder}</p>
+            </DrawerHeader>
+          
+            <div className="flex-1 overflow-hidden">
+              {activeTab === 'details' && (
+                <div className="px-6 py-6 space-y-6 h-full overflow-y-auto">
+                  {/* Lead Info */}
+                  <div className="flex items-start gap-4">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={selectedLead?.avatar || leadDetails.avatar || "/placeholder.svg"} />
+                      <AvatarFallback>
+                        {(selectedLead?.name || leadDetails.name)
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <h2 className="text-xl font-semibold text-gray-900">{selectedLead?.name || leadDetails.name}</h2>
+                      <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-1">
+                          <Mail className="h-4 w-4" />
+                          {selectedLead?.email || leadDetails.email}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Phone className="h-4 w-4" />
+                          {selectedLead?.phone || leadDetails.phone}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-gray-500">Task Priority</label>
-                      <Badge className="bg-crm-badge-high text-white w-fit">{leadDetails.upcomingActivity.priority}</Badge>
+                    <Button variant="ghost" size="sm">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {/* Lead Details Grid */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Lead owner</label>
+                      <p className="text-sm text-gray-900 mt-1">{leadDetails.leadOwner}</p>
                     </div>
                     <div>
-                      <label className="text-gray-500">Assigned to</label>
-                      <p className="text-gray-900">{leadDetails.upcomingActivity.assignedTo}</p>
+                      <label className="text-sm font-medium text-gray-500">Company</label>
+                      <p className="text-sm text-black mt-1">{leadDetails.company}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Job Title</label>
+                      <p className="text-sm text-black mt-1">{leadDetails.jobTitle}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Annual revenue</label>
+                      <p className="text-sm text-black mt-1">{leadDetails.annualRevenue}</p>
+                    </div>
+                  </div>
+
+                  {/* Status Badges */}
+                  <div className="flex flex-row w-full">
+                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100 rounded-r-none border-r-0 flex-1 justify-center">✓ New</Badge>
+                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100 rounded-none border-r-0 flex-1 justify-center">✓ Open</Badge>
+                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100 rounded-none border-r-0 flex-1 justify-center">In Progress</Badge>
+                    <Badge variant="outline" className="text-gray-600 bg-gray-50 rounded-none border-r-0 flex-1 justify-center">Open deals</Badge>
+                    <Badge variant="outline" className="text-gray-600 bg-gray-50 rounded-l-none flex-1 justify-center">Closed</Badge>
+                  </div>
+
+                  {/* Lead Source */}
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Lead source</label>
+                    <p className="text-sm text-black mt-1">{leadDetails.leadSource}</p>
+                    <p className="text-sm text-gray-500 mt-1">Last activity: {leadDetails.lastActivity}</p>
+                  </div>
+
+                  <Separator />
+
+                  {/* Upcoming Activity */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-medium text-black">Upcoming Activity</h3>
+                      <Button variant="link" size="sm" className="text-crm-primary">
+                        View all activity
+                      </Button>
+                    </div>
+
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h4 className="font-medium text-gray-900 mb-2">{leadDetails.upcomingActivity.title}</h4>
+                      <p className="text-sm text-gray-600 mb-3">{leadDetails.upcomingActivity.description}</p>
+
+                      <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <label className="text-gray-500">Reminder</label>
+                          <p className="text-gray-900">{leadDetails.upcomingActivity.reminder}</p>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-gray-500">Task Priority</label>
+                          <Badge className="bg-crm-badge-high text-white w-fit">{leadDetails.upcomingActivity.priority}</Badge>
+                        </div>
+                        <div>
+                          <label className="text-gray-500">Assigned to</label>
+                          <p className="text-gray-900">{leadDetails.upcomingActivity.assignedTo}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Notes */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-medium text-gray-900">Notes</h3>
+                      <Button variant="link" size="sm" className="text-crm-primary">
+                        Add note
+                      </Button>
+                    </div>
+
+                    <div className="space-y-4">
+                      {leadDetails.notes.map((note) => (
+                        <div key={note.id} className="border-l-2 border-gray-200 pl-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-medium text-gray-900">{note.author}</span>
+                            <span className="text-sm text-gray-500">{note.time}</span>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          <p className="text-sm text-gray-600">{note.content}</p>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <Separator />
-
-              {/* Notes */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-medium text-gray-900">Notes</h3>
-                  <Button variant="link" size="sm" className="text-crm-primary">
-                    Add note
-                  </Button>
-                </div>
-
-                <div className="space-y-4">
-                  {leadDetails.notes.map((note) => (
-                    <div key={note.id} className="border-l-2 border-gray-200 pl-4">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium text-gray-900">{note.author}</span>
-                        <span className="text-sm text-gray-500">{note.time}</span>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="h-3 w-3" />
-                        </Button>
-                      </div>
-                      <p className="text-sm text-gray-600">{note.content}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              )}
+              
+              {activeTab === 'chat' && (
+                <ChatInterface lead={selectedLead} />
+              )}
             </div>
           </DrawerContent>
         </Drawer>

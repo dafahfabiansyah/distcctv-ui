@@ -26,10 +26,10 @@ export default function Topbar() {
           </Badge>
         </Button>
 
-        {/* Settings */}
+        {/* Settings
         <Button variant="ghost" size="sm">
           <Settings className="h-5 w-5 text-black" />
-        </Button>
+        </Button> */}
 
         {/* User Profile */}
         <div className="flex items-center gap-3 pl-4 border-l border-gray-200">

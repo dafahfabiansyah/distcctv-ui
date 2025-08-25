@@ -401,13 +401,13 @@ export default function DashboardPage() {
           <div className="col-span-1">
             <RechartsPieChart 
               data={chartData.pieData} 
-              title="Pipeline Distribution"
+              title="Total Won per Sales"
             />
           </div>
           <div className="col-span-1">
             <RechartsPieChart 
               data={chartData.revenueData} 
-              title="Revenue Breakdown"
+              title="Total Lose per Sales"
             />
           </div>
         </div>

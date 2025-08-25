@@ -2,24 +2,16 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts"
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts"
 import { 
   TrendingUp, 
   TrendingDown, 
-  Users, 
-  DollarSign, 
-  ShoppingCart, 
-  Activity,
   Filter,
   Download,
-  Calendar,
   BarChart3,
   PieChartIcon,
 } from "lucide-react"
@@ -33,18 +25,58 @@ const chartData = {
     { month: "May", sales: 1890, leads: 4800 },
     { month: "Jun", sales: 2390, leads: 3800 }
   ],
-  pieData: [
-    { name: "New Leads", value: 400, color: "#00559a" },
-    { name: "Open Deals", value: 300, color: "#ffb401" },
-    { name: "In Progress", value: 200, color: "#005499" },
-    { name: "Closed Won", value: 100, color: "#22c55e" }
+
+   pieData: [
+    { name: "Linda Cahyani", value: 222486363, color: "#00559a" }, // merah
+    { name: "Afifah Hanaya", value: 284839130, color: "#ffb401" }, // hijau muda
+    { name: "Nur Azijah", value: 268865231, color: "#005499" }, // hijau
+    { name: "Indarwanti lin", value: 224149780, color: "#22c55e" }, // biru
+    { name: "DISTCCTV AI", value: 120181600, color: "#a855f7" } // ungu
   ],
-  // Pie chart kedua untuk revenue breakdown
   revenueData: [
-    { name: "Product Sales", value: 45, color: "#00559a" },
-    { name: "Services", value: 30, color: "#ffb401" },
-    { name: "Subscriptions", value: 20, color: "#005499" },
-    { name: "Others", value: 5, color: "#22c55e" }
+    { name: "Linda Cahyani", value: 3585000, color: "#00559a" }, // merah
+    { name: "Afifah Hanaya", value: 3744131798, color: "#ffb401" }, // hijau muda (dominan)
+    { name: "Nur Azijah", value: 84235000, color: "#005499" }, // hijau
+    { name: "Indarwanti lin", value: 534587962, color: "#22c55e" }, // biru
+    { name: "DISTCCTV AI", value: 32193000, color: "#a855f7" } // ungu
+  ],
+  // Data baru untuk perbandingan kedua pie chart
+  comparisonData: [
+    { 
+      name: "Linda Cahyani", 
+      won: 321, 
+      inProgress: 42, 
+      lose: 46,
+      total: 409
+    },
+    { 
+      name: "Afifah Hanaya", 
+      won: 141, 
+      inProgress: 144, 
+      lose: 39,
+      total: 324
+    },
+    { 
+      name: "Nur Azijah", 
+      won: 300, 
+      inProgress: 61, 
+      lose: 42,
+      total: 403
+    },
+    { 
+      name: "Indarwanti lin", 
+      won: 122, 
+      inProgress: 110, 
+      lose: 45,
+      total: 277
+    },
+    { 
+      name: "DISTCCTV AI", 
+      won: 139, 
+      inProgress: 9, 
+      lose: 27,
+      total: 175
+    }
   ],
   // Data baru untuk Employees Target
   employeesTarget: [
@@ -155,42 +187,6 @@ function SimpleBarChart({ data, title, dataKeys = { primary: 'sales', secondary:
               </div>
             </div>
           ))}
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-// Simple Pie Chart Component
-function SimplePieChart({ data, title }) {
-  const total = data.reduce((sum, item) => sum + item.value, 0)
-  
-  return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-black">{title}</h3>
-          <PieChart className="h-5 w-5 text-gray-400" />
-        </div>
-        <div className="space-y-4">
-          {data.map((item, index) => {
-            const percentage = ((item.value / total) * 100).toFixed(1)
-            return (
-              <div key={index} className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div 
-                    className="w-4 h-4 rounded-full" 
-                    style={{ backgroundColor: item.color }}
-                  ></div>
-                  <span className="text-sm text-gray-600">{item.name}</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-sm font-medium text-black">{item.value}</span>
-                  <span className="text-xs text-gray-500 ml-2">({percentage}%)</span>
-                </div>
-              </div>
-            )
-          })}
         </div>
       </CardContent>
     </Card>
@@ -410,6 +406,14 @@ export default function DashboardPage() {
               title="Total Lose per Sales"
             />
           </div>
+          
+          {/* New Comparison Bar Chart - Takes 2 columns */}
+          <div className="col-span-2">
+            <RechartsBarChart 
+              data={chartData.comparisonData} 
+              title="Won vs Lose Sales Comparison"
+            />
+          </div>
         </div>
 
         {/* Right Sidebar - Quick Actions */}
@@ -454,7 +458,7 @@ function RechartsPieChart({ data, title }) {
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
           <p className="font-medium text-gray-900">{data.name}</p>
           <p className="text-sm text-gray-600">
-            Value: <span className="font-medium">{data.value}</span>
+            Value: <span className="font-medium">Rp {data.value.toLocaleString('id-ID')}</span>
           </p>
           <p className="text-sm text-gray-600">
             Percentage: <span className="font-medium">{((data.value / data.payload.total) * 100).toFixed(1)}%</span>
@@ -467,14 +471,17 @@ function RechartsPieChart({ data, title }) {
 
   const CustomLegend = ({ payload }) => {
     return (
-      <div className="flex flex-wrap gap-2 justify-center mt-4">
+      <div className="flex flex-col gap-2 mt-4">
         {payload.map((entry, index) => (
-          <div key={index} className="flex items-center gap-2">
+          <div key={index} className="flex items-center gap-2 text-sm">
             <div 
-              className="w-3 h-3 rounded-full" 
+              className="w-3 h-3 rounded-sm" 
               style={{ backgroundColor: entry.color }}
             />
-            <span className="text-sm text-gray-600">{entry.value}</span>
+            <span className="text-gray-700">{entry.value}</span>
+            <span className="text-gray-500 ml-auto">
+              Rp {data[index]?.value.toLocaleString('id-ID')}
+            </span>
           </div>
         ))}
       </div>
@@ -498,10 +505,9 @@ function RechartsPieChart({ data, title }) {
               <Pie
                 data={dataWithTotal}
                 cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={120}
-                paddingAngle={2}
+                cy="40%"
+                outerRadius={80}
+                paddingAngle={1}
                 dataKey="value"
                 animationBegin={0}
                 animationDuration={800}
@@ -511,8 +517,85 @@ function RechartsPieChart({ data, title }) {
                 ))}
               </Pie>
               <Tooltip content={<CustomTooltip />} />
-              <Legend content={<CustomLegend />} />
+              <Legend 
+                content={<CustomLegend />} 
+                verticalAlign="bottom"
+                height={120}
+              />
             </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function RechartsBarChart({ data, title }) {
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      const total = payload.reduce((sum, entry) => sum + entry.value, 0)
+      return (
+        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+          <p className="font-medium text-gray-900">{label} ({total})</p>
+          {payload.reverse().map((entry, index) => (
+            <p key={index} className="text-sm text-gray-600">
+              {entry.dataKey === 'won' ? 'Won' : entry.dataKey === 'inProgress' ? 'In Progress' : 'Lose'}: 
+              <span className="font-medium ml-1" style={{ color: entry.color }}>
+                {entry.value}
+              </span>
+            </p>
+          ))}
+        </div>
+      )
+    }
+    return null
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-black">{title}</h3>
+          <BarChart3 className="h-5 w-5 text-gray-400" />
+        </div>
+        <div className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis 
+                dataKey="name" 
+                angle={-45}
+                textAnchor="end"
+                height={80}
+                fontSize={12}
+                stroke="#666"
+              />
+              <YAxis stroke="#666" fontSize={12} />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend />
+              {/* Stacked Bars */}
+              <Bar 
+                dataKey="won" 
+                stackId="a"
+                fill="#ffb401" 
+                name="Won"
+                radius={[0, 0, 0, 0]}
+              />
+              <Bar 
+                dataKey="inProgress" 
+                stackId="a"
+                fill="#9ca3af" 
+                name="In Progress"
+                radius={[0, 0, 0, 0]}
+              />
+              <Bar 
+                dataKey="lose" 
+                stackId="a"
+                fill="#06b6d4" 
+                name="Lose"
+                radius={[2, 2, 0, 0]}
+              />
+            </BarChart>
           </ResponsiveContainer>
         </div>
       </CardContent>

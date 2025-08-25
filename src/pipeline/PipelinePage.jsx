@@ -306,9 +306,12 @@ export default function PipelinePage() {
             <Button variant="outline" className="text-black bg-transparent">
               All leads
             </Button>
-            {/* <Button variant="outline" className="text-black bg-transparent">
-              Create date
-            </Button> */}
+             <Button variant="outline" className="text-black bg-transparent">
+              Export Report
+            </Button>
+             <Button variant="outline" className="text-black bg-transparent">
+              Export Recap
+            </Button>
             <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="text-gray-600 bg-transparent">

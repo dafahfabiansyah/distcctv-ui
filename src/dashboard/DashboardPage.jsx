@@ -27,51 +27,51 @@ const chartData = {
   ],
 
    pieData: [
-    { name: "Linda Cahyani", value: 222486363, color: "#00559a" }, // merah
-    { name: "Afifah Hanaya", value: 284839130, color: "#ffb401" }, // hijau muda
-    { name: "Nur Azijah", value: 268865231, color: "#005499" }, // hijau
-    { name: "Indarwanti lin", value: 224149780, color: "#22c55e" }, // biru
-    { name: "DISTCCTV AI", value: 120181600, color: "#a855f7" } // ungu
+    { name: "John doe", value: 9999, color: "#00559a" }, // merah
+    { name: "John doe", value: 9999, color: "#ffb401" }, // hijau muda
+    { name: "Nur Azijah", value: 9999, color: "#005499" }, // hijau
+    { name: "Indarwanti lin", value: 9999, color: "#22c55e" }, // biru
+    { name: "DISTCCTV AI", value: 9999, color: "#a855f7" } // ungu
   ],
   revenueData: [
-    { name: "Linda Cahyani", value: 3585000, color: "#00559a" }, // merah
-    { name: "Afifah Hanaya", value: 3744131798, color: "#ffb401" }, // hijau muda (dominan)
-    { name: "Nur Azijah", value: 84235000, color: "#005499" }, // hijau
-    { name: "Indarwanti lin", value: 534587962, color: "#22c55e" }, // biru
-    { name: "DISTCCTV AI", value: 32193000, color: "#a855f7" } // ungu
+    { name: "John doe", value: 9999, color: "#00559a" }, // merah
+    { name: "John doe", value: 9999, color: "#ffb401" }, // hijau muda (dominan)
+    { name: "Nur Azijah", value: 9999, color: "#005499" }, // hijau
+    { name: "Indarwanti lin", value: 9999, color: "#22c55e" }, // biru
+    { name: "DISTCCTV AI", value: 9999, color: "#a855f7" } // ungu
   ],
   // Data baru untuk perbandingan kedua pie chart
   comparisonData: [
     { 
-      name: "Linda Cahyani", 
+      name: "John doev", 
       won: 321, 
       inProgress: 42, 
       lose: 46,
       total: 409
     },
     { 
-      name: "Afifah Hanaya", 
+      name: "John doey", 
       won: 141, 
       inProgress: 144, 
       lose: 39,
       total: 324
     },
     { 
-      name: "Nur Azijah", 
+      name: "John doeyy", 
       won: 300, 
       inProgress: 61, 
       lose: 42,
       total: 403
     },
     { 
-      name: "Indarwanti lin", 
+      name: "John doeyyyy", 
       won: 122, 
       inProgress: 110, 
       lose: 45,
       total: 277
     },
     { 
-      name: "DISTCCTV AI", 
+      name: "John doew", 
       won: 139, 
       inProgress: 9, 
       lose: 27,

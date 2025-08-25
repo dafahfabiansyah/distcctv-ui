@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts"
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -20,48 +21,8 @@ import {
   Download,
   Calendar,
   BarChart3,
-  PieChart,
+  PieChartIcon,
 } from "lucide-react"
-
-// Sample dashboard data
-const dashboardMetrics = [
-  {
-    id: 1,
-    title: "Total Revenue",
-    value: "$45,231",
-    change: "+20.1%",
-    trend: "up",
-    icon: DollarSign,
-    color: "bg-crm-stage-new"
-  },
-  {
-    id: 2,
-    title: "Active Users",
-    value: "2,350",
-    change: "+15.3%",
-    trend: "up",
-    icon: Users,
-    color: "bg-crm-stage-open"
-  },
-  {
-    id: 3,
-    title: "Total Orders",
-    value: "1,234",
-    change: "+12.5%",
-    trend: "up",
-    icon: ShoppingCart,
-    color: "bg-crm-stage-progress"
-  },
-  {
-    id: 4,
-    title: "Conversion Rate",
-    value: "3.24%",
-    change: "-2.1%",
-    trend: "down",
-    icon: Activity,
-    color: "bg-crm-stage-closed"
-  }
-]
 
 const chartData = {
   salesChart: [
@@ -84,6 +45,15 @@ const chartData = {
     { name: "Services", value: 30, color: "#ffb401" },
     { name: "Subscriptions", value: 20, color: "#005499" },
     { name: "Others", value: 5, color: "#22c55e" }
+  ],
+  // Data baru untuk Employees Target
+  employeesTarget: [
+    { month: "Jan", target: 100, achieved: 85 },
+    { month: "Feb", target: 120, achieved: 110 },
+    { month: "Mar", target: 110, achieved: 95 },
+    { month: "Apr", target: 130, achieved: 125 },
+    { month: "May", target: 140, achieved: 135 },
+    { month: "Jun", target: 150, achieved: 145 }
   ]
 }
 
@@ -148,9 +118,9 @@ function MetricCard({ metric }) {
   )
 }
 
-// Simple Bar Chart Component
-function SimpleBarChart({ data, title }) {
-  const maxValue = Math.max(...data.map(d => Math.max(d.sales, d.leads)))
+// Simple Bar Chart Component - Updated
+function SimpleBarChart({ data, title, dataKeys = { primary: 'sales', secondary: 'leads' }, labels = { primary: 'Sales', secondary: 'Leads' }, colors = { primary: 'bg-crm-stage-new', secondary: 'bg-crm-stage-open' } }) {
+  const maxValue = Math.max(...data.map(d => Math.max(d[dataKeys.primary], d[dataKeys.secondary])))
   
   return (
     <Card>
@@ -165,23 +135,23 @@ function SimpleBarChart({ data, title }) {
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">{item.month}</span>
                 <div className="flex gap-4">
-                  <span className="text-blue-600">Sales: {item.sales}</span>
-                  <span className="text-yellow-600">Leads: {item.leads}</span>
+                  <span className="text-gray-600">{labels.primary}: {item[dataKeys.primary]}</span>
+                  {/* <span className="text-gray-600">{labels.secondary}: {item[dataKeys.secondary]}</span> */}
                 </div>
               </div>
               <div className="flex gap-2">
                 <div className="flex-1 bg-gray-200 rounded-full h-2">
                   <div 
-                    className="bg-crm-stage-new h-2 rounded-full transition-all" 
-                    style={{ width: `${(item.sales / maxValue) * 100}%` }}
+                    className={`${colors.primary} h-2 rounded-full transition-all`}
+                    style={{ width: `${(item[dataKeys.primary] / maxValue) * 100}%` }}
                   ></div>
                 </div>
-                <div className="flex-1 bg-gray-200 rounded-full h-2">
+                {/* <div className="flex-1 bg-gray-200 rounded-full h-2">
                   <div 
-                    className="bg-crm-stage-open h-2 rounded-full transition-all" 
-                    style={{ width: `${(item.leads / maxValue) * 100}%` }}
+                    className={`${colors.secondary} h-2 rounded-full transition-all`}
+                    style={{ width: `${(item[dataKeys.secondary] / maxValue) * 100}%` }}
                   ></div>
-                </div>
+                </div> */}
               </div>
             </div>
           ))}
@@ -394,11 +364,11 @@ export default function DashboardPage() {
 
         {/* Quick Stats */}
         <div className="flex items-center gap-4 text-sm text-gray-600">
-          <div className="flex items-center gap-1">
+          {/* <div className="flex items-center gap-1">
             <Calendar className="h-4 w-4" />
             <span>Last updated: Today at 2:30 PM</span>
-          </div>
-          <Separator orientation="vertical" className="h-4" />
+          </div> */}
+          {/* <Separator orientation="vertical" className="h-4" /> */}
           {/* <div className="flex items-center gap-1">
             <Eye className="h-4 w-4" />
             <span>Real-time data</span>
@@ -409,13 +379,13 @@ export default function DashboardPage() {
       {/* Bento Grid Layout */}
       <div className="grid grid-cols-12 gap-6">
         {/* Metrics Cards - Top Row */}
-        <div className="col-span-12">
+        {/* <div className="col-span-12">
           <div className="grid grid-cols-4 gap-6 mb-6">
             {dashboardMetrics.map((metric) => (
               <MetricCard key={metric.id} metric={metric} />
             ))}
           </div>
-        </div>
+        </div> */}
 
         {/* Main Charts Section - Bento Style */}
         <div className="col-span-8 grid grid-cols-2 gap-6">
@@ -423,19 +393,19 @@ export default function DashboardPage() {
           <div className="col-span-2">
             <SimpleBarChart 
               data={chartData.salesChart} 
-              title="Sales & Leads Overview"
+              title="Analytics Overview"
             />
           </div>
           
           {/* Two Pie Charts Side by Side */}
           <div className="col-span-1">
-            <SimplePieChart 
+            <RechartsPieChart 
               data={chartData.pieData} 
               title="Pipeline Distribution"
             />
           </div>
           <div className="col-span-1">
-            <SimplePieChart 
+            <RechartsPieChart 
               data={chartData.revenueData} 
               title="Revenue Breakdown"
             />
@@ -444,50 +414,25 @@ export default function DashboardPage() {
 
         {/* Right Sidebar - Quick Actions */}
         <div className="col-span-4">
-          <Card className="h-full">
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold text-black mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                <Button className="w-full bg-crm-primary hover:bg-crm-primary-hover text-white justify-start">
-                  <Users className="h-4 w-4 mr-2" />
-                  Add New Lead
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <ShoppingCart className="h-4 w-4 mr-2" />
-                  Create Deal
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Activity className="h-4 w-4 mr-2" />
-                  Schedule Meeting
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Download className="h-4 w-4 mr-2" />
-                  Generate Report
-                </Button>
-              </div>
-              
-              <Separator className="my-4" />
-              
-              <div>
-                <h4 className="text-sm font-medium text-gray-900 mb-2">System Status</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">API Status</span>
-                    <Badge className="bg-green-100 text-green-800">Online</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Database</span>
-                    <Badge className="bg-green-100 text-green-800">Healthy</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Last Backup</span>
-                    <span className="text-xs text-gray-500">2 hours ago</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+           <SimpleBarChart 
+            data={chartData.employeesTarget} 
+            title="Employees Target"
+            dataKeys={{ primary: 'target', secondary: 'achieved' }}
+            labels={{ primary: 'Target', secondary: 'Achieved' }}
+            colors={{ primary: 'bg-crm-stage-new', secondary: 'bg-crm-stage-open' }}
+          />
         </div>
+
+        {/* Right Sidebar - Employees Target Chart */}
+        {/* <div className="col-span-4">
+          <SimpleBarChart 
+            data={chartData.employeesTarget} 
+            title="Employees Target"
+            dataKeys={{ primary: 'target', secondary: 'achieved' }}
+            labels={{ primary: 'Target', secondary: 'Achieved' }}
+            colors={{ primary: 'bg-crm-stage-new', secondary: 'bg-crm-stage-open' }}
+          />
+        </div> */}
 
         {/* Bottom Section - Recent Activities */}
         <div className="col-span-12">
@@ -495,5 +440,82 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+// Recharts Pie Chart Component
+function RechartsPieChart({ data, title }) {
+  const COLORS = data.map(item => item.color)
+  
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0]
+      return (
+        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+          <p className="font-medium text-gray-900">{data.name}</p>
+          <p className="text-sm text-gray-600">
+            Value: <span className="font-medium">{data.value}</span>
+          </p>
+          <p className="text-sm text-gray-600">
+            Percentage: <span className="font-medium">{((data.value / data.payload.total) * 100).toFixed(1)}%</span>
+          </p>
+        </div>
+      )
+    }
+    return null
+  }
+
+  const CustomLegend = ({ payload }) => {
+    return (
+      <div className="flex flex-wrap gap-2 justify-center mt-4">
+        {payload.map((entry, index) => (
+          <div key={index} className="flex items-center gap-2">
+            <div 
+              className="w-3 h-3 rounded-full" 
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="text-sm text-gray-600">{entry.value}</span>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  // Add total to each data item for tooltip calculation
+  const total = data.reduce((sum, item) => sum + item.value, 0)
+  const dataWithTotal = data.map(item => ({ ...item, total }))
+
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-black">{title}</h3>
+          <PieChartIcon className="h-5 w-5 text-gray-400" />
+        </div>
+        <div className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={dataWithTotal}
+                cx="50%"
+                cy="50%"
+                innerRadius={60}
+                outerRadius={120}
+                paddingAngle={2}
+                dataKey="value"
+                animationBegin={0}
+                animationDuration={800}
+              >
+                {dataWithTotal.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index]} />
+                ))}
+              </Pie>
+              <Tooltip content={<CustomTooltip />} />
+              <Legend content={<CustomLegend />} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

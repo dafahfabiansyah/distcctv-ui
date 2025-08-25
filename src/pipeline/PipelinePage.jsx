@@ -9,7 +9,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
-import { Mail, Phone, Clock, Plus, MoreHorizontal, Eye, ArrowRight, GripVertical } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Mail, Phone, Clock, Plus, MoreHorizontal, Eye, ArrowRight, GripVertical, Filter } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 // Sample data
 const stages = [
@@ -223,6 +226,13 @@ export default function PipelinePage() {
   const [leadsData, setLeadsData] = useState(initialLeads)
   const [selectedLead, setSelectedLead] = useState(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const [filters, setFilters] = useState({
+    fromDate: '',
+    toDate: '',
+    sales: '',
+    sortBy: 'newest'
+  })
 
   const handleLeadClick = (lead) => {
     setSelectedLead(lead)
@@ -256,6 +266,28 @@ export default function PipelinePage() {
     })
   }
 
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const handleApplyFilters = () => {
+    // Logic untuk apply filters bisa ditambahkan di sini
+    console.log('Applied filters:', filters)
+    setIsFilterOpen(false)
+  }
+
+  const handleResetFilters = () => {
+    setFilters({
+      fromDate: '',
+      toDate: '',
+      sales: '',
+      sortBy: 'newest'
+    })
+  }
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="flex-1 bg-white p-6">
@@ -274,12 +306,100 @@ export default function PipelinePage() {
             <Button variant="outline" className="text-black bg-transparent">
               All leads
             </Button>
-            <Button variant="outline" className="text-black bg-transparent">
+            {/* <Button variant="outline" className="text-black bg-transparent">
               Create date
-            </Button>
-            <Button variant="outline" className="text-gray-600 bg-transparent">
-              More filters
-            </Button>
+            </Button> */}
+            <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="text-gray-600 bg-transparent">
+                  <Filter className="h-4 w-4 mr-2" />
+                  More filters
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Filter Leads</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  {/* From Date */}
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <label htmlFor="fromDate" className="text-right text-sm font-medium">
+                      From Date
+                    </label>
+                    <Input
+                      id="fromDate"
+                      type="date"
+                      value={filters.fromDate}
+                      onChange={(e) => handleFilterChange('fromDate', e.target.value)}
+                      className="col-span-3"
+                    />
+                  </div>
+                  
+                  {/* To Date */}
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <label htmlFor="toDate" className="text-right text-sm font-medium">
+                      To Date
+                    </label>
+                    <Input
+                      id="toDate"
+                      type="date"
+                      value={filters.toDate}
+                      onChange={(e) => handleFilterChange('toDate', e.target.value)}
+                      className="col-span-3"
+                    />
+                  </div>
+                  
+                  {/* Sales */}
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <label htmlFor="sales" className="text-right text-sm font-medium">
+                      Sales
+                    </label>
+                    <Select
+                      value={filters.sales}
+                      onValueChange={(value) => handleFilterChange('sales', value)}
+                    >
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select Sales Person"/>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Sales</SelectItem>
+                        <SelectItem value="Alice">Alice</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {/* Sort By */}
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <label htmlFor="sortBy" className="text-right text-sm font-medium">
+                      Sort By
+                    </label>
+                    <select
+                      id="sortBy"
+                      value={filters.sortBy}
+                      onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+                      className="col-span-3 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="newest">Newest First</option>
+                      <option value="oldest">Oldest First</option>
+                      <option value="name-asc">Name A-Z</option>
+                      <option value="name-desc">Name Z-A</option>
+                      <option value="revenue-high">Revenue High to Low</option>
+                      <option value="revenue-low">Revenue Low to High</option>
+                    </select>
+                  </div>
+                </div>
+                
+                {/* Filter Actions */}
+                <div className="flex justify-between pt-4">
+                  <Button variant="outline" onClick={handleResetFilters}>
+                    Reset
+                  </Button>
+                  <Button onClick={handleApplyFilters}>
+                    Apply Filters
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 

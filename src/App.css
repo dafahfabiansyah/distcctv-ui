@@ -39,21 +39,21 @@
   --sidebar-ring: oklch(0.708 0 0);
 
   /* Adding custom CRM color variables */
-  --crm-primary: #e20a16; /* Red primary color */
-  --crm-primary-hover: #c20914; /* Darker red for hover */
+  --crm-primary: #005499; /* Red primary color */
+  --crm-primary-hover: #004377; /* Darker red for hover */
   --crm-primary-text: #e20a16; /* Red text */
   --crm-sidebar-bg: #ffffff; /* White sidebar background */
   --crm-sidebar-text: #000000; /* Black text */
-  --crm-sidebar-active: #e20a16; /* Red active state */
+  --crm-sidebar-active: #005499; /* Red active state */
   --crm-sidebar-hover: #f5f5f5; /* Light gray hover state */
   --crm-stage-new: #00559a; /* Blue for new stage */
   --crm-stage-open: #ffb401; /* Yellow for open stage */
-  --crm-stage-progress: #e20a16; /* Red for in progress */
+  --crm-stage-progress: #005499; /* Red for in progress */
   --crm-stage-closed: #6b7280; /* Gray for closed */
   --crm-status-new: #00559a; /* Blue for new status */
   --crm-status-open: #ffb401; /* Yellow for open status */
-  --crm-status-progress: #e20a16; /* Red for progress status */
-  --crm-badge-high: #e20a16; /* Red for high priority */
+  --crm-status-progress: #005499; /* Red for progress status */
+  --crm-badge-high: #e30914; /* Red for high priority */
 }
 
 .dark {

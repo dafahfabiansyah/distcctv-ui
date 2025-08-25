@@ -30,12 +30,14 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="p-3 border-b border-gray-200">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-crm-primary rounded flex items-center justify-center flex-shrink-0">
+          {/* <div className="w-8 h-8 bg-crm-primary rounded flex items-center justify-center flex-shrink-0">
             <span className="text-white font-bold text-sm">K</span>
-          </div>
-          <span className="text-black font-semibold text-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap overflow-hidden">
-            kiriman
-          </span>
+          </div> */}
+          <img 
+            src="/distributor-cctv-logo-1611915586.jpg" 
+            alt="Kiriman Logo" 
+            className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 h-6 object-contain"
+          />
         </div>
       </div>
 

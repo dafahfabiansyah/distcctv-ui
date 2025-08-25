@@ -3,24 +3,28 @@
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { LayoutDashboard, Users, MessageSquare, Settings } from "lucide-react"
+import { Link } from "react-router"
 
 const menuItems = [
   {
     id: "dashboard",
     name: "Dashboard",
     icon: <LayoutDashboard className="h-5 w-5" />,
+    url : "/"
   },
   {
     id: "crm",
     name: "CRM",
     icon: <Users className="h-5 w-5" />,
     active: true,
+    url : "/pipeline"
   },
   {
     id: "omnichannel",
     name: "Omnichannel",
     icon: <MessageSquare className="h-5 w-5" />,
     badge: 3,
+    url : "/omnichannel"
   },
 ]
 
@@ -54,7 +58,10 @@ export default function Sidebar() {
             >
               <div className="flex-shrink-0">{item.icon}</div>
               <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-between w-full overflow-hidden">
+                <Link to={item.url}>
+                
                 <span className="whitespace-nowrap">{item.name}</span>
+                </Link>
                 {item.badge && (
                   <Badge variant="secondary" className="bg-crm-badge-high text-white flex-shrink-0">
                     {item.badge}

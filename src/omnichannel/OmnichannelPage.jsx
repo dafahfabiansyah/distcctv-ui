@@ -310,8 +310,8 @@ function ChatArea({ selectedContact }) {
                 {getSourceBadge(selectedContact.source)}
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500 capitalize">{selectedContact.status}</span>
-                <span className="text-sm text-gray-400">•</span>
+                {/* <span className="text-sm text-gray-500 capitalize">{selectedContact.status}</span> */}
+                {/* <span className="text-sm text-gray-400">•</span> */}
                 <span className="text-sm text-gray-500">
                   {selectedContact.source === 'whatsapp' ? selectedContact.phone : selectedContact.email}
                 </span>

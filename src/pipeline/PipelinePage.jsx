@@ -196,7 +196,7 @@ function StageColumn({ stage, leads, onLeadClick, onMoveLead }) {
   })
 
   return (
-    <div className="bg-white rounded-lg p-4">
+    <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
       {/* Stage Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -211,8 +211,8 @@ function StageColumn({ stage, leads, onLeadClick, onMoveLead }) {
       {/* Drop Area */}
       <div
         ref={drop}
-        className={`space-y-3 min-h-[200px] p-2 rounded-lg transition-colors ${
-          isOver ? 'bg-blue-50 border-2 border-blue-200 border-dashed' : ''
+        className={`space-y-3 min-h-[200px] p-2 rounded-lg transition-colors border-2 border-dashed ${
+          isOver ? 'bg-blue-50 border-blue-200' : 'border-gray-100 bg-gray-50/30'
         }`}
       >
         {leads.map((lead) => (
@@ -430,10 +430,10 @@ export default function PipelinePage() {
                   <Eye className="h-5 w-5" />
                   Lead Preview
                 </DrawerTitle>
-                <Button variant="outline" size="sm">
+                {/* <Button variant="outline" size="sm">
                   View full details
                   <ArrowRight className="h-4 w-4 ml-1" />
-                </Button>
+                </Button> */}
               </div>
               
               {/* Tab Navigation */}

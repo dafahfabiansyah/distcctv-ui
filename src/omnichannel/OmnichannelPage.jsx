@@ -678,7 +678,7 @@ export default function OmnichannelPage() {
           </div>
 
           {/* Filter */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 overflow-x-auto">
             <Button 
               variant={filterSource === 'all' ? 'default' : 'outline'} 
               size="sm" 
@@ -702,6 +702,14 @@ export default function OmnichannelPage() {
               className={filterSource === 'tawkto' ? 'bg-blue-500 hover:bg-blue-600' : ''}
             >
               Tawk.to
+            </Button>
+            <Button 
+              variant={filterSource === 'email' ? 'default' : 'outline'} 
+              size="sm" 
+              onClick={() => setFilterSource('email')}
+              className={filterSource === 'email' ? 'bg-red-500 hover:bg-red-600' : ''}
+            >
+              Email
             </Button>
           </div>
         </div>

@@ -225,7 +225,7 @@ function StageColumn({ stage, leads, onLeadClick, onMoveLead }) {
 }
 
 export default function PipelinePage() {
-  const [activeTab, setActiveTab] = useState('help')
+  const [activeTab, setActiveTab] = useState('whatsapp')
   const [leadsData, setLeadsData] = useState(initialLeads)
   const [selectedLead, setSelectedLead] = useState(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
@@ -497,6 +497,21 @@ export default function PipelinePage() {
           
             <div className="flex-1 overflow-hidden">
               {activeTab === 'help' && (
+                 <div className="px-6 py-6">
+                  <h2 className="text-xl font-semibold mb-4">WhatsApp</h2>
+                  <p className="text-gray-600">WhatsApp integration will be implemented here.</p>
+                </div>
+              )}
+              
+              {/* Tab content untuk tab lainnya */}
+              {activeTab === 'note' && (
+                <div className="px-6 py-6">
+                  <h2 className="text-xl font-semibold mb-4">Notes</h2>
+                  <p className="text-gray-600">Note functionality will be implemented here.</p>
+                </div>
+              )}
+              
+              {activeTab === 'whatsapp' && (
                 <div className="px-6 py-6 space-y-6 h-full overflow-y-auto">
                   {/* Lead Info */}
                   <div className="flex items-start gap-4">
@@ -633,34 +648,17 @@ export default function PipelinePage() {
                       </Accordion>
                     </div>
 
-                    {/* Chat Preview - Muncul di space kosong ketika accordion ditutup */}
-                    {accordionValue.length === 0 && (
-                      <div className="flex-1 border-l pl-6">
-                        <div className="h-full">
-                          <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
-                            <MessageSquare className="h-5 w-5" />
-                            Chat Preview
-                          </h3>
-                          <ChatInterface lead={selectedLead} />
-                        </div>
+                    {/* Chat Preview - Selalu muncul di samping accordion */}
+                    <div className="flex-1 border-l pl-6">
+                      <div className="h-full">
+                        <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+                          <MessageSquare className="h-5 w-5" />
+                          Chat Preview
+                        </h3>
+                        <ChatInterface lead={selectedLead} />
                       </div>
-                    )}
+                    </div>
                   </div>
-                </div>
-              )}
-              
-              {/* Tab content untuk tab lainnya */}
-              {activeTab === 'note' && (
-                <div className="px-6 py-6">
-                  <h2 className="text-xl font-semibold mb-4">Notes</h2>
-                  <p className="text-gray-600">Note functionality will be implemented here.</p>
-                </div>
-              )}
-              
-              {activeTab === 'whatsapp' && (
-                <div className="px-6 py-6">
-                  <h2 className="text-xl font-semibold mb-4">WhatsApp</h2>
-                  <p className="text-gray-600">WhatsApp integration will be implemented here.</p>
                 </div>
               )}
               

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
@@ -96,35 +96,63 @@ const sampleMessages = {
       id: 1,
       sender: 'contact',
       content: 'Halo, saya tertarik dengan produk CCTV untuk rumah',
-      timestamp: '14:20',
+      timestamp: '09:15',
       type: 'text'
     },
     {
       id: 2,
       sender: 'agent',
       content: 'Halo! Terima kasih sudah menghubungi kami. Saya akan bantu Anda memilih CCTV yang tepat untuk rumah.',
-      timestamp: '14:22',
+      timestamp: '09:17',
       type: 'text'
     },
     {
       id: 3,
       sender: 'contact',
       content: 'Saya butuh yang bisa akses dari HP dan kualitas gambar bagus',
-      timestamp: '14:25',
+      timestamp: '09:20',
       type: 'text'
     },
     {
       id: 4,
       sender: 'agent',
       content: 'Untuk kebutuhan tersebut, saya rekomendasikan paket IP Camera dengan fitur mobile viewing. Apakah lokasi indoor atau outdoor?',
-      timestamp: '14:27',
+      timestamp: '09:22',
       type: 'text'
     },
     {
       id: 5,
       sender: 'contact',
+      content: 'Kombinasi keduanya, saya butuh 4 kamera outdoor dan 2 indoor',
+      timestamp: '09:25',
+      type: 'text'
+    },
+    {
+      id: 6,
+      sender: 'agent',
+      content: 'Perfect! Untuk paket 6 kamera (4 outdoor + 2 indoor) dengan NVR 8 channel, harganya Rp 8.500.000. Sudah termasuk instalasi dan garansi 2 tahun.',
+      timestamp: '09:28',
+      type: 'text'
+    },
+    {
+      id: 7,
+      sender: 'contact',
+      content: 'Wah menarik, bisa lihat contoh hasil rekamannya?',
+      timestamp: '09:30',
+      type: 'text'
+    },
+    {
+      id: 8,
+      sender: 'agent',
+      content: 'Tentu! Saya kirimkan video sample dan brosur lengkapnya ya. Kapan waktu yang tepat untuk survey lokasi?',
+      timestamp: '09:32',
+      type: 'text'
+    },
+    {
+      id: 9,
+      sender: 'contact',
       content: 'Terima kasih atas informasinya, saya tertarik dengan produk CCTV outdoor',
-      timestamp: '14:30',
+      timestamp: '09:35',
       type: 'text'
     }
   ],
@@ -160,8 +188,233 @@ const sampleMessages = {
     {
       id: 5,
       sender: 'contact',
+      content: 'Yes, please. We also need night vision capability and remote monitoring.',
+      timestamp: '13:54',
+      type: 'text'
+    },
+    {
+      id: 6,
+      sender: 'agent',
+      content: 'Excellent! Our Professional Package includes infrared night vision up to 30 meters and 24/7 remote monitoring via mobile app. The total for 10 cameras would be $2,850.',
+      timestamp: '13:56',
+      type: 'text'
+    },
+    {
+      id: 7,
+      sender: 'contact',
+      content: 'That sounds reasonable. What about installation and warranty?',
+      timestamp: '13:58',
+      type: 'text'
+    },
+    {
+      id: 8,
+      sender: 'agent',
+      content: 'Installation is included in the price, and we provide 3-year warranty on all equipment. We can schedule installation within 3-5 business days.',
+      timestamp: '14:00',
+      type: 'text'
+    },
+    {
+      id: 9,
+      sender: 'contact',
       content: 'Apakah ada paket bundling untuk sistem keamanan lengkap?',
-      timestamp: '13:55',
+      timestamp: '14:02',
+      type: 'text'
+    }
+  ],
+  3: [
+    {
+      id: 1,
+      sender: 'contact',
+      content: 'Selamat siang, saya Lisa dari PT. Maju Jaya',
+      timestamp: '11:30',
+      type: 'text'
+    },
+    {
+      id: 2,
+      sender: 'agent',
+      content: 'Selamat siang Bu Lisa! Ada yang bisa saya bantu untuk kebutuhan CCTV perusahaan?',
+      timestamp: '11:32',
+      type: 'text'
+    },
+    {
+      id: 3,
+      sender: 'contact',
+      content: 'Kami butuh upgrade sistem CCTV di kantor. Yang lama sudah 5 tahun dan sering bermasalah',
+      timestamp: '11:35',
+      type: 'text'
+    },
+    {
+      id: 4,
+      sender: 'agent',
+      content: 'Saya mengerti Bu. Berapa titik kamera yang dibutuhkan dan apakah ada area khusus yang perlu pengawasan ekstra?',
+      timestamp: '11:37',
+      type: 'text'
+    },
+    {
+      id: 5,
+      sender: 'contact',
+      content: 'Total 12 titik. Area lobby, ruang server, dan gudang perlu resolusi tinggi',
+      timestamp: '11:40',
+      type: 'text'
+    },
+    {
+      id: 6,
+      sender: 'agent',
+      content: 'Untuk area kritikal seperti itu, saya rekomendasikan kamera 4K dengan storage NVR 16TB. Kapan bisa jadwal survey untuk assessment detail?',
+      timestamp: '11:43',
+      type: 'text'
+    },
+    {
+      id: 7,
+      sender: 'contact',
+      content: 'Saya butuh konsultasi untuk instalasi CCTV di kantor',
+      timestamp: '11:45',
+      type: 'text'
+    }
+  ],
+  4: [
+    {
+      id: 1,
+      sender: 'contact',
+      content: 'Halo, saya ingin tanya harga kamera IP terbaru',
+      timestamp: '10:15',
+      type: 'text'
+    },
+    {
+      id: 2,
+      sender: 'agent',
+      content: 'Halo! Untuk kamera IP, kami punya beberapa pilihan. Apakah untuk indoor atau outdoor?',
+      timestamp: '10:17',
+      type: 'text'
+    },
+    {
+      id: 3,
+      sender: 'contact',
+      content: 'Outdoor, butuh yang tahan cuaca dan night vision bagus',
+      timestamp: '10:20',
+      type: 'text'
+    },
+    {
+      id: 4,
+      sender: 'agent',
+      content: 'Untuk outdoor dengan night vision, kami rekomendasikan seri IP67 dengan IR 50 meter. Harga mulai dari Rp 1.200.000 per unit.',
+      timestamp: '10:22',
+      type: 'text'
+    }
+  ],
+  5: [
+    {
+      id: 1,
+      sender: 'contact',
+      content: 'Halo, saya Amanda. Kemarin sudah diskusi tentang instalasi CCTV',
+      timestamp: '08:30',
+      type: 'text'
+    },
+    {
+      id: 2,
+      sender: 'agent',
+      content: 'Halo Bu Amanda! Ya, saya ingat. Untuk rumah 2 lantai dengan 8 kamera ya?',
+      timestamp: '08:32',
+      type: 'text'
+    },
+    {
+      id: 3,
+      sender: 'contact',
+      content: 'Betul. Saya sudah diskusi dengan suami, kami setuju dengan paketnya',
+      timestamp: '08:35',
+      type: 'text'
+    },
+    {
+      id: 4,
+      sender: 'agent',
+      content: 'Alhamdulillah! Berarti kita lanjut ke tahap survey lokasi ya Bu. Tim teknis perlu lihat kondisi rumah untuk perencanaan kabel.',
+      timestamp: '08:37',
+      type: 'text'
+    },
+    {
+      id: 5,
+      sender: 'contact',
+      content: 'Iya, kapan bisa? Saya prefer weekend karena weekday kerja',
+      timestamp: '08:40',
+      type: 'text'
+    },
+    {
+      id: 6,
+      sender: 'agent',
+      content: 'Weekend bisa Bu. Sabtu atau Minggu yang lebih cocok? Tim survey biasanya datang pagi sekitar jam 9.',
+      timestamp: '08:42',
+      type: 'text'
+    },
+    {
+      id: 7,
+      sender: 'contact',
+      content: 'Sabtu pagi cocok. Alamat sudah ada kan?',
+      timestamp: '08:45',
+      type: 'text'
+    },
+    {
+      id: 8,
+      sender: 'agent',
+      content: 'Sudah Bu, di Jl. Melati No. 15 Bintaro ya. Saya jadwalkan Sabtu jam 9 pagi. Nanti tim akan konfirmasi H-1.',
+      timestamp: '08:47',
+      type: 'text'
+    },
+    {
+      id: 9,
+      sender: 'contact',
+      content: 'Kapan bisa jadwal survey lokasi?',
+      timestamp: '08:50',
+      type: 'text'
+    }
+  ],
+  6: [
+    {
+      id: 1,
+      sender: 'contact',
+      content: 'Good morning, I need specifications for 16 channel DVR',
+      timestamp: '07:45',
+      type: 'text'
+    },
+    {
+      id: 2,
+      sender: 'agent',
+      content: 'Good morning! I\'ll be happy to provide DVR specifications. Are you looking for analog or hybrid DVR?',
+      timestamp: '07:47',
+      type: 'text'
+    },
+    {
+      id: 3,
+      sender: 'contact',
+      content: 'Hybrid would be better. Need to support both analog and IP cameras',
+      timestamp: '07:50',
+      type: 'text'
+    },
+    {
+      id: 4,
+      sender: 'agent',
+      content: 'Perfect! Our 16-channel hybrid DVR supports up to 16 analog + 2 IP cameras, 4K recording, 8TB storage, and remote viewing. Price is $450.',
+      timestamp: '07:52',
+      type: 'text'
+    },
+    {
+      id: 5,
+      sender: 'contact',
+      content: 'What about backup options and network connectivity?',
+      timestamp: '07:55',
+      type: 'text'
+    },
+    {
+      id: 6,
+      sender: 'agent',
+      content: 'It has USB backup, cloud backup option, Ethernet port, and WiFi capability. Also includes mobile app for remote monitoring.',
+      timestamp: '07:57',
+      type: 'text'
+    },
+    {
+      id: 7,
+      sender: 'contact',
+      content: 'Mohon info detail spesifikasi DVR 16 channel',
+      timestamp: '08:00',
       type: 'text'
     }
   ]
@@ -241,19 +494,26 @@ function ContactItem({ contact, isSelected, onClick }) {
 }
 
 function ChatArea({ selectedContact }) {
-  const [messages, setMessages] = useState(sampleMessages[selectedContact?.id] || [])
+  // Langsung ambil messages dari dummy data berdasarkan selectedContact
+  const messages = selectedContact ? (sampleMessages[selectedContact.id] || []) : []
   const [newMessage, setNewMessage] = useState('')
+  const [chatMessages, setChatMessages] = useState(messages)
+
+  // Update chatMessages ketika selectedContact atau messages berubah
+  React.useEffect(() => {
+    setChatMessages(messages)
+  }, [selectedContact, messages])
 
   const handleSendMessage = () => {
     if (newMessage.trim()) {
       const message = {
-        id: messages.length + 1,
+        id: chatMessages.length + 1,
         sender: 'agent',
         content: newMessage,
         timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
         type: 'text'
       }
-      setMessages([...messages, message])
+      setChatMessages([...chatMessages, message])
       setNewMessage('')
     }
   }
@@ -334,7 +594,7 @@ function ChatArea({ selectedContact }) {
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-gray-50">
-        {messages.map((message) => (
+        {chatMessages.map((message) => (
           <div key={message.id} className={`flex ${message.sender === 'agent' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[70%] rounded-lg px-4 py-2 shadow-sm ${
               message.sender === 'agent' 

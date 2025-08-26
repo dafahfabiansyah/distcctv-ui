@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Mail, Phone, Clock, Plus, MoreHorizontal, Eye, ArrowRight, GripVertical, Filter, MessageSquare } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ChatInterface from "@/components/ChatInterface"
@@ -224,11 +225,12 @@ function StageColumn({ stage, leads, onLeadClick, onMoveLead }) {
 }
 
 export default function PipelinePage() {
-  const [activeTab, setActiveTab] = useState('details')
+  const [activeTab, setActiveTab] = useState('help')
   const [leadsData, setLeadsData] = useState(initialLeads)
   const [selectedLead, setSelectedLead] = useState(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const [accordionValue, setAccordionValue] = useState([])
   const [filters, setFilters] = useState({
     fromDate: '',
     toDate: '',
@@ -430,34 +432,71 @@ export default function PipelinePage() {
                   <Eye className="h-5 w-5" />
                   Lead Preview
                 </DrawerTitle>
-                {/* <Button variant="outline" size="sm">
-                  View full details
-                  <ArrowRight className="h-4 w-4 ml-1" />
-                </Button> */}
               </div>
               
-              {/* Tab Navigation */}
+              {/* Updated Tab Navigation sesuai gambar */}
               <div className="flex gap-1 mt-4">
                 <Button 
-                  variant={activeTab === 'details' ? 'default' : 'ghost'} 
+                  variant={activeTab === 'help' ? 'default' : 'ghost'} 
                   size="sm"
-                  onClick={() => setActiveTab('details')}
+                  onClick={() => setActiveTab('help')}
+                  className="bg-blue-500 hover:bg-blue-600 text-white"
                 >
-                  Details
+                  Help
                 </Button>
                 <Button 
-                  variant={activeTab === 'chat' ? 'default' : 'ghost'} 
+                  variant={activeTab === 'note' ? 'default' : 'ghost'} 
                   size="sm"
-                  onClick={() => setActiveTab('chat')}
+                  onClick={() => setActiveTab('note')}
+                  className="bg-blue-400 hover:bg-blue-500 text-white"
                 >
-                  <MessageSquare className="h-4 w-4 mr-1" />
-                  Chat
+                  Note
+                </Button>
+                <Button 
+                  variant={activeTab === 'whatsapp' ? 'default' : 'ghost'} 
+                  size="sm"
+                  onClick={() => setActiveTab('whatsapp')}
+                  className="bg-blue-300 hover:bg-blue-400 text-white"
+                >
+                  WhatsApp
+                </Button>
+                <Button 
+                  variant={activeTab === 'email' ? 'default' : 'ghost'} 
+                  size="sm"
+                  onClick={() => setActiveTab('email')}
+                  className="bg-blue-200 hover:bg-blue-300 text-white"
+                >
+                  Email
+                </Button>
+                <Button 
+                  variant={activeTab === 'create-email' ? 'default' : 'ghost'} 
+                  size="sm"
+                  onClick={() => setActiveTab('create-email')}
+                  className="bg-blue-100 hover:bg-blue-200 text-gray-800"
+                >
+                  Create Email
+                </Button>
+                <Button 
+                  variant={activeTab === 'activity' ? 'default' : 'ghost'} 
+                  size="sm"
+                  onClick={() => setActiveTab('activity')}
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-800"
+                >
+                  Activity
+                </Button>
+                <Button 
+                  variant={activeTab === 'quotation' ? 'default' : 'ghost'} 
+                  size="sm"
+                  onClick={() => setActiveTab('quotation')}
+                  className="bg-gray-300 hover:bg-gray-400 text-gray-800"
+                >
+                  Quotation
                 </Button>
               </div>
             </DrawerHeader>
           
             <div className="flex-1 overflow-hidden">
-              {activeTab === 'details' && (
+              {activeTab === 'help' && (
                 <div className="px-6 py-6 space-y-6 h-full overflow-y-auto">
                   {/* Lead Info */}
                   <div className="flex items-start gap-4">
@@ -488,27 +527,7 @@ export default function PipelinePage() {
                     </Button>
                   </div>
 
-                  {/* Lead Details Grid */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Lead owner</label>
-                      <p className="text-sm text-gray-900 mt-1">{leadDetails.leadOwner}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Company</label>
-                      <p className="text-sm text-black mt-1">{leadDetails.company}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Job Title</label>
-                      <p className="text-sm text-black mt-1">{leadDetails.jobTitle}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-500">Annual revenue</label>
-                      <p className="text-sm text-black mt-1">{leadDetails.annualRevenue}</p>
-                    </div>
-                  </div>
-
-                  {/* Status Badges */}
+                  {/* Status Badges - Tetap di atas tanpa accordion */}
                   <div className="flex flex-row w-full">
                     <Badge className="bg-green-100 text-green-800 hover:bg-green-100 rounded-r-none border-r-0 flex-1 justify-center">✓ New</Badge>
                     <Badge className="bg-green-100 text-green-800 hover:bg-green-100 rounded-none border-r-0 flex-1 justify-center">✓ Open</Badge>
@@ -517,76 +536,160 @@ export default function PipelinePage() {
                     <Badge variant="outline" className="text-gray-600 bg-gray-50 rounded-l-none flex-1 justify-center">Closed</Badge>
                   </div>
 
-                  {/* Lead Source */}
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Lead source</label>
-                    <p className="text-sm text-black mt-1">{leadDetails.leadSource}</p>
-                    <p className="text-sm text-gray-500 mt-1">Last activity: {leadDetails.lastActivity}</p>
-                  </div>
+                  {/* Layout dengan Accordion dan Chat Preview */}
+                  <div className="flex gap-6 h-full">
+                    {/* Accordion Section */}
+                    <div className="flex-1">
+                      <Accordion 
+                        type="multiple" 
+                        value={accordionValue} 
+                        onValueChange={setAccordionValue}
+                        className="w-full"
+                      >
+                        {/* Lead Details */}
+                        <AccordionItem value="details">
+                          <AccordionTrigger className="text-base font-medium">Lead Details</AccordionTrigger>
+                          <AccordionContent className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="text-sm font-medium text-gray-500">Lead owner</label>
+                                <p className="text-sm text-gray-900 mt-1">{leadDetails.leadOwner}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-500">Company</label>
+                                <p className="text-sm text-black mt-1">{leadDetails.company}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-500">Job Title</label>
+                                <p className="text-sm text-black mt-1">{leadDetails.jobTitle}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-500">Annual revenue</label>
+                                <p className="text-sm text-black mt-1">{leadDetails.annualRevenue}</p>
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <label className="text-sm font-medium text-gray-500">Lead source</label>
+                              <p className="text-sm text-black mt-1">{leadDetails.leadSource}</p>
+                              <p className="text-sm text-gray-500 mt-1">Last activity: {leadDetails.lastActivity}</p>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
 
-                  <Separator />
+                        {/* Upcoming Activity */}
+                        <AccordionItem value="activity">
+                          <AccordionTrigger className="text-base font-medium">Upcoming Activity</AccordionTrigger>
+                          <AccordionContent>
+                            <div className="bg-gray-50 rounded-lg p-4">
+                              <h4 className="font-medium text-gray-900 mb-2">{leadDetails.upcomingActivity.title}</h4>
+                              <p className="text-sm text-gray-600 mb-3">{leadDetails.upcomingActivity.description}</p>
 
-                  {/* Upcoming Activity */}
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-medium text-black">Upcoming Activity</h3>
-                      <Button variant="link" size="sm" className="text-crm-primary">
-                        View all activity
-                      </Button>
+                              <div className="grid grid-cols-3 gap-4 text-sm">
+                                <div>
+                                  <label className="text-gray-500">Reminder</label>
+                                  <p className="text-gray-900">{leadDetails.upcomingActivity.reminder}</p>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  <label className="text-gray-500">Task Priority</label>
+                                  <Badge className="bg-crm-badge-high text-white w-fit">{leadDetails.upcomingActivity.priority}</Badge>
+                                </div>
+                                <div>
+                                  <label className="text-gray-500">Assigned to</label>
+                                  <p className="text-gray-900">{leadDetails.upcomingActivity.assignedTo}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+
+                        {/* Notes */}
+                        <AccordionItem value="notes">
+                          <AccordionTrigger className="text-base font-medium">
+                            <div className="flex items-center justify-between w-full mr-4">
+                              <span>Notes</span>
+                              <Button variant="link" size="sm" className="text-crm-primary p-0 h-auto">
+                                Add note
+                              </Button>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <div className="space-y-4">
+                              {leadDetails.notes.map((note) => (
+                                <div key={note.id} className="border-l-2 border-gray-200 pl-4">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-sm font-medium text-gray-900">{note.author}</span>
+                                    <span className="text-sm text-gray-500">{note.time}</span>
+                                    <Button variant="ghost" size="sm">
+                                      <MoreHorizontal className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                  <p className="text-sm text-gray-600">{note.content}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
                     </div>
 
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h4 className="font-medium text-gray-900 mb-2">{leadDetails.upcomingActivity.title}</h4>
-                      <p className="text-sm text-gray-600 mb-3">{leadDetails.upcomingActivity.description}</p>
-
-                      <div className="grid grid-cols-3 gap-4 text-sm">
-                        <div>
-                          <label className="text-gray-500">Reminder</label>
-                          <p className="text-gray-900">{leadDetails.upcomingActivity.reminder}</p>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-gray-500">Task Priority</label>
-                          <Badge className="bg-crm-badge-high text-white w-fit">{leadDetails.upcomingActivity.priority}</Badge>
-                        </div>
-                        <div>
-                          <label className="text-gray-500">Assigned to</label>
-                          <p className="text-gray-900">{leadDetails.upcomingActivity.assignedTo}</p>
+                    {/* Chat Preview - Muncul di space kosong ketika accordion ditutup */}
+                    {accordionValue.length === 0 && (
+                      <div className="flex-1 border-l pl-6">
+                        <div className="h-full">
+                          <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+                            <MessageSquare className="h-5 w-5" />
+                            Chat Preview
+                          </h3>
+                          <ChatInterface lead={selectedLead} />
                         </div>
                       </div>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Notes */}
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-medium text-gray-900">Notes</h3>
-                      <Button variant="link" size="sm" className="text-crm-primary">
-                        Add note
-                      </Button>
-                    </div>
-
-                    <div className="space-y-4">
-                      {leadDetails.notes.map((note) => (
-                        <div key={note.id} className="border-l-2 border-gray-200 pl-4">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-medium text-gray-900">{note.author}</span>
-                            <span className="text-sm text-gray-500">{note.time}</span>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-3 w-3" />
-                            </Button>
-                          </div>
-                          <p className="text-sm text-gray-600">{note.content}</p>
-                        </div>
-                      ))}
-                    </div>
+                    )}
                   </div>
                 </div>
               )}
               
-              {activeTab === 'chat' && (
-                <ChatInterface lead={selectedLead} />
+              {/* Tab content untuk tab lainnya */}
+              {activeTab === 'note' && (
+                <div className="px-6 py-6">
+                  <h2 className="text-xl font-semibold mb-4">Notes</h2>
+                  <p className="text-gray-600">Note functionality will be implemented here.</p>
+                </div>
+              )}
+              
+              {activeTab === 'whatsapp' && (
+                <div className="px-6 py-6">
+                  <h2 className="text-xl font-semibold mb-4">WhatsApp</h2>
+                  <p className="text-gray-600">WhatsApp integration will be implemented here.</p>
+                </div>
+              )}
+              
+              {activeTab === 'email' && (
+                <div className="px-6 py-6">
+                  <h2 className="text-xl font-semibold mb-4">Email</h2>
+                  <p className="text-gray-600">Email functionality will be implemented here.</p>
+                </div>
+              )}
+              
+              {activeTab === 'create-email' && (
+                <div className="px-6 py-6">
+                  <h2 className="text-xl font-semibold mb-4">Create Email</h2>
+                  <p className="text-gray-600">Email creation form will be implemented here.</p>
+                </div>
+              )}
+              
+              {activeTab === 'activity' && (
+                <div className="px-6 py-6">
+                  <h2 className="text-xl font-semibold mb-4">Activity</h2>
+                  <p className="text-gray-600">Activity timeline will be implemented here.</p>
+                </div>
+              )}
+              
+              {activeTab === 'quotation' && (
+                <div className="px-6 py-6">
+                  <h2 className="text-xl font-semibold mb-4">Quotation</h2>
+                  <p className="text-gray-600">Quotation management will be implemented here.</p>
+                </div>
               )}
             </div>
           </DrawerContent>

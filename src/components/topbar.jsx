@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Search, Bell, Settings, User } from "lucide-react"
+import { Search, Bell, Settings, User, QrCode } from "lucide-react"
 
 export default function Topbar() {
   return (
@@ -26,10 +26,11 @@ export default function Topbar() {
           </Badge>
         </Button>
 
-        {/* Settings
-        <Button variant="ghost" size="sm">
-          <Settings className="h-5 w-5 text-black" />
-        </Button> */}
+        {/* Settings */}
+        <Button variant="ghost" size="sm"  title="Scan QR Code"
+          aria-label="QR Code Scanner">
+          <QrCode className="h-5 w-5 text-black" />
+        </Button>
 
         {/* User Profile */}
         <div className="flex items-center gap-3 pl-4 border-l border-gray-200">

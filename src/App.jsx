@@ -6,6 +6,7 @@ import DashboardPage from './dashboard/DashboardPage'
 import PipelinePage from './pipeline/PipelinePage'
 import OmnichannelPage from './omnichannel/OmnichannelPage'
 import './App.css'
+import Topbar from './components/topbar'
 
 const AppContent = () => {
   const { isAuthenticated, loading } = useAuth()
@@ -30,6 +31,7 @@ const AppContent = () => {
       <div className="flex h-screen bg-gray-100">
         <Sidebar />
         <main className="flex-1 overflow-x-hidden overflow-y-auto">
+        <Topbar/>
           <Routes>
              <Route path="/" element={<Navigate to="/dashboard" replace />} />
              <Route path="/dashboard" element={<DashboardPage />} />

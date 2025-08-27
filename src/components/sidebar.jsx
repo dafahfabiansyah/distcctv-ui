@@ -1,7 +1,7 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "./ui/button"
+import { Badge } from "./ui/badge"
 import { LayoutDashboard, Users, MessageSquare, Settings } from "lucide-react"
 import { Link, useLocation } from "react-router"
 

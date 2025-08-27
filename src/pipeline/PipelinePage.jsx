@@ -7,14 +7,15 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Separator } from "@/components/ui/separator"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+
 import { Input } from "@/components/ui/input"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Mail, Phone, Clock, Plus, MoreHorizontal, Eye, ArrowRight, GripVertical, Filter, MessageSquare } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ChatInterface from "@/components/ChatInterface"
+import QuotationModal from "./components/QuotationModal"
 
 // Sample data
 const stages = [
@@ -197,7 +198,12 @@ function StageColumn({ stage, leads, onLeadClick, onMoveLead }) {
   })
 
   return (
-    <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+    <div 
+      ref={drop}
+      className={`bg-white rounded-lg p-4 border border-gray-200 shadow-sm min-h-[500px] transition-colors ${
+        isOver ? 'bg-blue-50 border-blue-200' : ''
+      }`}
+    >
       {/* Stage Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -209,16 +215,20 @@ function StageColumn({ stage, leads, onLeadClick, onMoveLead }) {
         </div>
       </div>
 
-      {/* Drop Area */}
-      <div
-        ref={drop}
-        className={`space-y-3 min-h-[200px] p-2 rounded-lg transition-colors border-2 border-dashed ${
-          isOver ? 'bg-blue-50 border-blue-200' : 'border-gray-100 bg-gray-50/30'
-        }`}
-      >
+      {/* Cards Area */}
+      <div className="space-y-3">
         {leads.map((lead) => (
           <LeadCard key={lead.id} lead={lead} onLeadClick={onLeadClick} />
         ))}
+        
+        {/* Empty state dengan visual indicator */}
+        {leads.length === 0 && (
+          <div className="flex items-center justify-center h-32 border-2 border-dashed border-gray-200 rounded-lg text-gray-400">
+            <div className="text-center">
+              <div className="text-sm">Drop leads here</div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -229,6 +239,7 @@ export default function PipelinePage() {
   const [leadsData, setLeadsData] = useState(initialLeads)
   const [selectedLead, setSelectedLead] = useState(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [showQuotationModal, setShowQuotationModal] = useState(false)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [accordionValue, setAccordionValue] = useState([])
   const [filters, setFilters] = useState({
@@ -295,6 +306,7 @@ export default function PipelinePage() {
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="flex-1 bg-white p-6">
+
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
@@ -434,61 +446,60 @@ export default function PipelinePage() {
                 </DrawerTitle>
               </div>
               
-              {/* Updated Tab Navigation sesuai gambar */}
-              <div className="flex gap-1 mt-4">
-                <Button 
-                  variant={activeTab === 'help' ? 'default' : 'ghost'} 
-                  size="sm"
-                  onClick={() => setActiveTab('help')}
-                  className="bg-blue-500 hover:bg-blue-600 text-white"
-                >
-                  Help
-                </Button>
-                <Button 
-                  variant={activeTab === 'note' ? 'default' : 'ghost'} 
-                  size="sm"
-                  onClick={() => setActiveTab('note')}
-                  className="bg-blue-400 hover:bg-blue-500 text-white"
-                >
-                  Note
-                </Button>
-                <Button 
-                  variant={activeTab === 'whatsapp' ? 'default' : 'ghost'} 
-                  size="sm"
-                  onClick={() => setActiveTab('whatsapp')}
-                  className="bg-blue-300 hover:bg-blue-400 text-white"
-                >
-                  WhatsApp
-                </Button>
-                <Button 
-                  variant={activeTab === 'email' ? 'default' : 'ghost'} 
+              <div className="flex w-full mt-4">
+                  <Button 
+                    variant={activeTab === 'help'} 
+                    size="sm"
+                    onClick={() => setActiveTab('help')}
+                    className="flex-1 bg-crm-primary hover:bg-crm-primary-hover text-white rounded-r-none"
+                  >
+                    Help
+                  </Button>
+                  <Button 
+                    variant={activeTab === 'note'} 
+                    size="sm"
+                    onClick={() => setActiveTab('note')}
+                    className="flex-1 bg-crm-primary hover:bg-crm-primary-hover text-white rounded-none"
+                  >
+                    Note
+                  </Button>
+                  <Button 
+                    variant={activeTab === 'whatsapp'} 
+                    size="sm"
+                    onClick={() => setActiveTab('whatsapp')}
+                    className="flex-1 bg-crm-primary hover:bg-crm-primary-hover text-white rounded-none"
+                  >
+                    WhatsApp
+                  </Button>
+                  <Button 
+                  variant={activeTab === 'email'} 
                   size="sm"
                   onClick={() => setActiveTab('email')}
-                  className="bg-blue-200 hover:bg-blue-300 text-white"
+                  className="flex-1 bg-crm-primary hover:bg-crm-primary-hover text-white rounded-none"
                 >
                   Email
                 </Button>
                 <Button 
-                  variant={activeTab === 'create-email' ? 'default' : 'ghost'} 
+                  variant={activeTab === 'create-email'} 
                   size="sm"
                   onClick={() => setActiveTab('create-email')}
-                  className="bg-blue-100 hover:bg-blue-200 text-gray-800"
+                  className="flex-1 bg-crm-primary hover:bg-crm-primary-hover text-white rounded-none"
                 >
                   Create Email
                 </Button>
                 <Button 
-                  variant={activeTab === 'activity' ? 'default' : 'ghost'} 
+                  variant={activeTab === 'activity'} 
                   size="sm"
                   onClick={() => setActiveTab('activity')}
-                  className="bg-gray-200 hover:bg-gray-300 text-gray-800"
+                  className="flex-1 bg-crm-primary hover:bg-crm-primary-hover text-white rounded-none"
                 >
                   Activity
                 </Button>
                 <Button 
-                  variant={activeTab === 'quotation' ? 'default' : 'ghost'} 
+                  variant={activeTab === 'quotation'} 
                   size="sm"
                   onClick={() => setActiveTab('quotation')}
-                  className="bg-gray-300 hover:bg-gray-400 text-gray-800"
+                  className="flex-1 bg-crm-primary hover:bg-crm-primary-hover text-white rounded-l-none"
                 >
                   Quotation
                 </Button>
@@ -498,18 +509,124 @@ export default function PipelinePage() {
             <div className="flex-1 overflow-hidden">
               {activeTab === 'help' && (
                  <div className="px-6 py-6">
-                  <h2 className="text-xl font-semibold mb-4">WhatsApp</h2>
-                  <p className="text-gray-600">WhatsApp integration will be implemented here.</p>
+                  <h2 className="text-xl font-semibold mb-4">Help</h2>
+                  <p className="text-gray-600">Help integration will be implemented here.</p>
                 </div>
               )}
               
               {/* Tab content untuk tab lainnya */}
               {activeTab === 'note' && (
-                <div className="px-6 py-6">
-                  <h2 className="text-xl font-semibold mb-4">Notes</h2>
-                  <p className="text-gray-600">Note functionality will be implemented here.</p>
-                </div>
-              )}
+              <div className="px-6 py-6">
+                <h2 className="text-xl font-semibold mb-6">Notes</h2>
+                
+                <form className="space-y-6">
+                  {/* Catatan Kebutuhan */}
+                  <div className="space-y-2">
+                    <label htmlFor="requirements" className="text-sm font-medium text-gray-700">
+                      Catatan Kebutuhan <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      id="requirements"
+                      rows={4}
+                      placeholder="Tulis catatan kebutuhan lead di sini..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
+                      required
+                    />
+                  </div>
+
+                  {/* Catatan Kendala */}
+                  <div className="space-y-2">
+                    <label htmlFor="obstacles" className="text-sm font-medium text-gray-700">
+                      Catatan Kendala
+                    </label>
+                    <textarea
+                      id="obstacles"
+                      rows={4}
+                      placeholder="Tulis catatan kendala atau masalah yang dihadapi..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
+                    />
+                  </div>
+
+                  {/* @Tag Select */}
+                  <div className="space-y-2">
+                    <label htmlFor="assignee" className="text-sm font-medium text-gray-700">
+                      @Tag
+                    </label>
+                    <Select>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Pilih nama untuk di-tag" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="esther-howard">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
+                              EH
+                            </div>
+                            <span>Esther Howard</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="jenny-wilson">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
+                              JW
+                            </div>
+                            <span>Jenny Wilson</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="wade-warren">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
+                              WW
+                            </div>
+                            <span>Wade Warren</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500">
+                      Pilih nama untuk memberikan notifikasi dan assignment
+                    </p>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex justify-end space-x-3 pt-6 border-t">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        // Reset form logic
+                        document.querySelector('form').reset()
+                      }}
+                    >
+                      Batal
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        // Save note logic
+                        const formData = {
+                          requirements: document.getElementById('requirements').value,
+                          obstacles: document.getElementById('obstacles').value,
+                          assignee: document.querySelector('[name="assignee"]')?.value,
+                          priority: document.querySelector('[name="priority"]')?.value,
+                          followupDate: document.getElementById('followup-date').value,
+                          timestamp: new Date().toISOString(),
+                          leadId: selectedLead?.id
+                        }
+                        console.log('Saving note:', formData)
+                        // Here you would typically send this to your API
+                        alert('Note berhasil disimpan!')
+                      }}
+                    >
+                      Save Note
+                    </Button>
+                  </div>
+                </form>
+
+              </div>
+            )}
               
               {activeTab === 'whatsapp' && (
                 <div className="px-6 py-6 space-y-6 h-full overflow-y-auto">
@@ -670,9 +787,143 @@ export default function PipelinePage() {
               )}
               
               {activeTab === 'create-email' && (
-                <div className="px-6 py-6">
-                  <h2 className="text-xl font-semibold mb-4">Create Email</h2>
-                  <p className="text-gray-600">Email creation form will be implemented here.</p>
+                  <div className="px-6 py-6">
+                  <h2 className="text-xl font-semibold mb-6">Create Email</h2>
+                  
+                  <form className="space-y-6">
+                    {/* Kepada Field */}
+                    <div className="space-y-2">
+                      <label htmlFor="to" className="text-sm font-medium text-gray-700">
+                        Kepada <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        id="to"
+                        type="email"
+                        placeholder="Masukkan alamat email penerima"
+                        className="w-full"
+                        required
+                      />
+                    </div>
+                  
+                    {/* CC Field */}
+                    <div className="space-y-2">
+                      <label htmlFor="cc" className="text-sm font-medium text-gray-700">
+                        CC
+                      </label>
+                      <Input
+                        id="cc"
+                        type="email"
+                        placeholder="Masukkan alamat email CC (opsional)"
+                        className="w-full"
+                      />
+                    </div>
+                  
+                    {/* Subjek Field */}
+                    <div className="space-y-2">
+                      <label htmlFor="subject" className="text-sm font-medium text-gray-700">
+                        Subjek <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        id="subject"
+                        type="text"
+                        placeholder="Masukkan subjek email"
+                        className="w-full"
+                        required
+                      />
+                    </div>
+                  
+                    {/* Pesan Field */}
+                    <div className="space-y-2">
+                      <label htmlFor="message" className="text-sm font-medium text-gray-700">
+                        Pesan <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        id="message"
+                        rows={8}
+                        placeholder="Tulis pesan email Anda di sini..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
+                        required
+                      />
+                    </div>
+                  
+                    {/* File Uploader */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        Lampiran
+                      </label>
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-2 text-center hover:border-gray-400 transition-colors">
+                        <input
+                          type="file"
+                          id="file-upload"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            // Handle file upload logic here
+                            console.log('Files selected:', e.target.files)
+                          }}
+                        />
+                        <label
+                          htmlFor="file-upload"
+                          className="cursor-pointer flex flex-col items-center space-y-2"
+                        >
+                          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            <span className="font-medium text-blue-600 hover:text-blue-500">
+                              Klik untuk upload file
+                            </span>
+                            {' '}atau drag and drop
+                          </div>
+                          <p className="text-xs text-gray-500">
+                            PNG, JPG, PDF, DOC hingga 10MB
+                          </p>
+                        </label>
+                      </div>
+                      
+                      {/* File List Preview (akan muncul setelah file dipilih) */}
+                      <div id="file-list" className="space-y-2 mt-3">
+                        {/* File items akan ditampilkan di sini setelah upload */}
+                      </div>
+                    </div>
+                  
+                    {/* Action Buttons */}
+                    <div className="flex justify-end space-x-3 pt-6 border-t">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          // Reset form logic
+                          document.querySelector('form').reset()
+                        }}
+                      >
+                        Batal
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          // Save as draft logic
+                          console.log('Save as draft')
+                        }}
+                      >
+                        Simpan Draft
+                      </Button>
+                      <Button
+                        type="submit"
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          // Send email logic
+                          console.log('Send email')
+                        }}
+                      >
+                        Kirim Email
+                      </Button>
+                    </div>
+                  </form>
                 </div>
               )}
               
@@ -685,14 +936,64 @@ export default function PipelinePage() {
               
               {activeTab === 'quotation' && (
                 <div className="px-6 py-6">
-                  <h2 className="text-xl font-semibold mb-4">Quotation</h2>
-                  <p className="text-gray-600">Quotation management will be implemented here.</p>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-semibold">Quotation</h2>
+                    <Button 
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                      onClick={() => setShowQuotationModal(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Buat Quotation
+                    </Button>
+                  </div>
+                  
+                  <div className="bg-gray-50 rounded-lg p-8 text-center">
+                    <div className="mb-4">
+                      <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Belum ada quotation</h3>
+                    <p className="text-gray-600 mb-4">Mulai buat quotation pertama untuk lead ini</p>
+                  </div>
                 </div>
               )}
             </div>
           </DrawerContent>
         </Drawer>
-      </div>
-    </DndProvider>
+        
+        {/* Custom Quotation Modal */}
+        {showQuotationModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* Backdrop */}
+            <div 
+              className="absolute inset-0 bg-black opacity-20" 
+              onClick={() => setShowQuotationModal(false)}
+            />
+            
+            {/* Modal Content */}
+            <div className="relative bg-white rounded-lg shadow-xl w-[95vw] h-[90vh] overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b">
+                <h2 className="text-xl font-semibold">Buat Quotation Baru</h2>
+                <button
+                  onClick={() => setShowQuotationModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              {/* Content */}
+              <div className="p-6 overflow-y-auto h-[calc(90vh-80px)]">
+                <QuotationModal selectedLead={selectedLead} />
+              </div>
+            </div>
+          </div>
+        )}
+        </div>
+      </DndProvider>
   )
 }

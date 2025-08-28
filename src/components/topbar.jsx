@@ -3,9 +3,29 @@
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Search, Bell, Settings, User, QrCode } from "lucide-react"
+import { Search, Bell, QrCode } from "lucide-react"
+import { useAuth } from "../contexts/AuthContext"
 
 export default function Topbar() {
+  const { user } = useAuth()
+  
+  // Function to get user initials for avatar
+  const getUserInitials = (name) => {
+    if (!name) return 'U'
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+  }
+  
+  // Function to get display name
+  const getDisplayName = () => {
+    if (!user) return 'User'
+    return user.name || user.email || 'User'
+  }
+  
   return (
     <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
       {/* Search */}
@@ -36,13 +56,15 @@ export default function Topbar() {
         <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
           <div className="relative">
             <div className="w-8 h-8 bg-crm-primary rounded-full flex items-center justify-center">
-              <User className="h-4 w-4 text-white" />
+              <span className="text-white text-sm font-medium">
+                {getUserInitials(user?.name || user?.email)}
+              </span>
             </div>
             {/* Online status indicator */}
             <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
           </div>
           <div className="text-sm">
-            <div className="font-medium text-black">John Doe</div>
+            <div className="font-medium text-black">{getDisplayName()}</div>
             <div className="text-gray-500 text-xs">Online</div>
           </div>
         </div>

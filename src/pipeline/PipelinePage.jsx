@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useParams } from "react-router"
 import { DndProvider, useDrag, useDrop } from "react-dnd"
 import { HTML5Backend } from "react-dnd-html5-backend"
 import { Button } from "@/components/ui/button"
@@ -16,88 +17,98 @@ import { Mail, Phone, Clock, Plus, MoreHorizontal, Eye, ArrowRight, GripVertical
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ChatInterface from "@/components/ChatInterface"
 import QuotationModal from "./components/QuotationModal"
+import pipelineService from "@/services/pipeline"
 
-// Sample data
-const stages = [
+// Sample data - will be replaced by API data
+const defaultStages = [
   { id: "new", name: "New", count: 6, color: "bg-crm-stage-new" },
   { id: "open", name: "Open", count: 4, color: "bg-crm-stage-open" },
   { id: "progress", name: "In Progress", count: 3, color: "bg-crm-stage-progress" },
   { id: "closed", name: "Closed", count: 2, color: "bg-crm-stage-closed" },
 ]
 
-const initialLeads = {
-  new: [
-    {
-      id: 1,
-      name: "Arlene McCoy",
-      email: "emailkuyahui@gmail.com",
-      phone: "(405) 555-0128",
-      time: "Today at 4:30 PM",
-      avatar: "/diverse-woman-portrait.png",
-    },
-    {
-      id: 2,
-      name: "Wade Warren",
-      email: "emailkuyahui@gmail.com",
-      phone: "(405) 555-0128",
-      time: "Today at 4:30 PM",
-      avatar: "/thoughtful-man.png",
-    },
-    {
-      id: 3,
-      name: "Kristin Watson",
-      email: "emailkuyahui@gmail.com",
-      phone: "(405) 555-0128",
-      time: "Today at 4:30 PM",
-      avatar: "/diverse-woman-portrait.png",
-    },
-    {
-      id: 4,
-      name: "Darlene Robertson",
-      email: "emailkuyahui@gmail.com",
-      phone: "(405) 555-0128",
-      time: "Today at 4:30 PM",
-      avatar: "/diverse-woman-portrait.png",
-    },
-    {
-      id: 5,
-      name: "Annette Black",
-      email: "emailkuyahui@gmail.com",
-      phone: "(405) 555-0128",
-      time: "Today at 4:30 PM",
-      avatar: "/diverse-woman-portrait.png",
-    },
-    {
-      id: 6,
-      name: "Jerome Bell",
-      email: "jeromebell@gmail.com",
-      phone: "(405) 555-0128",
-      time: "Today at 4:30 PM",
-      avatar: "/thoughtful-man.png",
-    },
-  ],
-  open: [
-    {
-      id: 7,
-      name: "Jenny Wilson",
-      email: "emailkuyahui@gmail.com",
-      phone: "(405) 555-0128",
-      time: "Today at 4:30 PM",
-      avatar: "/diverse-woman-portrait.png",
-    },
-  ],
-  progress: [
-    {
-      id: 8,
-      name: "Jenny Wilson",
-      email: "emailkuyahui@gmail.com",
-      phone: "(405) 555-0128",
-      time: "Today at 4:30 PM",
-      avatar: "/diverse-woman-portrait.png",
-    },
-  ],
-  closed: [],
-}
+const initialLeads = [
+  {
+    id: 1,
+    name: "Arlene McCoy",
+    email: "emailkuyahui@gmail.com",
+    phone: "(405) 555-0128",
+    time: "Today at 4:30 PM",
+    avatar: "/diverse-woman-portrait.png",
+    stage: "new",
+    company: "Sample Company",
+    value: 5000,
+    source: "Website",
+    lastActivity: "Today at 4:30 PM",
+    priority: "medium",
+    tags: [],
+    notes: ""
+  },
+  {
+    id: 2,
+    name: "Wade Warren",
+    email: "emailkuyahui@gmail.com",
+    phone: "(405) 555-0128",
+    time: "Today at 4:30 PM",
+    avatar: "/thoughtful-man.png",
+    stage: "new",
+    company: "Sample Company",
+    value: 3000,
+    source: "Referral",
+    lastActivity: "Today at 4:30 PM",
+    priority: "high",
+    tags: [],
+    notes: ""
+  },
+  {
+    id: 3,
+    name: "Kristin Watson",
+    email: "emailkuyahui@gmail.com",
+    phone: "(405) 555-0128",
+    time: "Today at 4:30 PM",
+    avatar: "/diverse-woman-portrait.png",
+    stage: "open",
+    company: "Sample Company",
+    value: 7500,
+    source: "Social Media",
+    lastActivity: "Today at 4:30 PM",
+    priority: "medium",
+    tags: [],
+    notes: ""
+  },
+  {
+    id: 4,
+    name: "Darlene Robertson",
+    email: "emailkuyahui@gmail.com",
+    phone: "(405) 555-0128",
+    time: "Today at 4:30 PM",
+    avatar: "/diverse-woman-portrait.png",
+    stage: "progress",
+    company: "Sample Company",
+    value: 12000,
+    source: "Email Campaign",
+    lastActivity: "Today at 4:30 PM",
+    priority: "high",
+    tags: [],
+    notes: ""
+  },
+  {
+    id: 5,
+    name: "Annette Black",
+    email: "emailkuyahui@gmail.com",
+    phone: "(405) 555-0128",
+    time: "Today at 4:30 PM",
+    avatar: "/diverse-woman-portrait.png",
+    stage: "closed",
+    company: "Sample Company",
+    value: 8000,
+    source: "Direct",
+    lastActivity: "Today at 4:30 PM",
+    priority: "low",
+    tags: [],
+    notes: ""
+  }
+]
 
 const leadDetails = {
   name: "Jerome Bell",
@@ -235,19 +246,148 @@ function StageColumn({ stage, leads, onLeadClick, onMoveLead }) {
 }
 
 export default function PipelinePage() {
-  const [activeTab, setActiveTab] = useState('whatsapp')
-  const [leadsData, setLeadsData] = useState(initialLeads)
+  const { pipelineId } = useParams()
+  const [activeTab, setActiveTab] = useState("leads")
+  const [leadsData, setLeadsData] = useState([])
+  const [stages, setStages] = useState([])
   const [selectedLead, setSelectedLead] = useState(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [showQuotationModal, setShowQuotationModal] = useState(false)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
-  const [accordionValue, setAccordionValue] = useState([])
+  const [accordionValue, setAccordionValue] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  // Debug: log pipelineId
+  console.log('PipelinePage - pipelineId:', pipelineId)
+  console.log('PipelinePage - leadsData length:', leadsData.length)
+  console.log('PipelinePage - stages length:', stages.length)
   const [filters, setFilters] = useState({
-    fromDate: '',
-    toDate: '',
-    sales: '',
-    sortBy: 'newest'
+    dateFrom: "",
+    dateTo: "",
+    sales: "",
+    search: "",
+    sort: "newest"
   })
+
+  // Fetch stages dari API
+  const fetchStages = async () => {
+    try {
+      console.log('Fetching stages for pipeline:', pipelineId)
+      const response = await pipelineService.getStages(pipelineId)
+      console.log('Stages API Response:', response)
+      
+      if (response && response.success && response.data) {
+        const stagesFromAPI = response.data.map(stage => ({
+          id: stage.id,
+          name: stage.name,
+          position: stage.position,
+          count: 0, // Will be updated when leads are loaded
+          color: `bg-crm-stage-${stage.name.toLowerCase().replace(/\s+/g, '-')}`
+        }))
+        
+        stagesFromAPI.sort((a, b) => a.position - b.position)
+        console.log('Stages from API:', stagesFromAPI)
+        return stagesFromAPI
+      }
+    } catch (error) {
+      console.error('Error fetching stages:', error)
+    }
+    
+    // Fallback to default stages
+    console.log('Using default stages as fallback')
+    return [...defaultStages]
+  }
+
+  // Fetch data leads dari API
+  const fetchLeads = async () => {
+    console.log('fetchLeads called with pipelineId:', pipelineId)
+    
+    if (!pipelineId) {
+      // Jika tidak ada pipelineId, gunakan data sample
+      console.log('No pipelineId, using sample data')
+      setLeadsData(initialLeads)
+      setStages(defaultStages)
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    
+    try {
+      // Fetch stages first
+      const stagesData = await fetchStages()
+      setStages(stagesData)
+      
+      const response = await pipelineService.getLeads(pipelineId, filters)
+      
+      // Debug: log response untuk melihat struktur data
+      console.log('API Response:', response)
+      
+      // Transform data sesuai struktur yang diharapkan komponen
+      if (response && Array.isArray(response)) {
+        const transformedLeads = []
+        
+        console.log('Found leads array in response:', response.length, 'leads')
+        
+        // Transform leads data
+        response.forEach(lead => {
+          // Transform lead data
+          transformedLeads.push({
+            id: lead.id,
+            name: lead.name,
+            company: lead.company || '',
+            email: lead.email || '',
+            phone: lead.phone,
+            stage: lead.lead_on_stage ? lead.lead_on_stage.stage_id : stagesData[0]?.id || null,
+            value: lead.amount || 0,
+            source: lead.source_name || 'Unknown',
+            lastActivity: lead.updated_at,
+            priority: 'medium',
+            tags: [],
+            notes: lead.note || '',
+            created_at: lead.created_at,
+            updated_at: lead.updated_at,
+            time: lead.updated_at,
+            avatar: '/diverse-woman-portrait.png' // Default avatar
+          })
+        })
+        
+        console.log('Transformed leads:', transformedLeads)
+        
+        // Update stage counts
+        const updatedStages = stagesData.map(stage => ({
+          ...stage,
+          count: transformedLeads.filter(lead => lead.stage === stage.id).length
+        }))
+        
+        console.log('Updated stages with counts:', updatedStages)
+        
+        setLeadsData(transformedLeads)
+        setStages(updatedStages)
+      }
+    } catch (err) {
+      console.error('Error fetching leads:', err)
+      setError('Failed to fetch leads data')
+      // Fallback ke data sample jika error
+      setLeadsData(initialLeads)
+      setStages(defaultStages)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Effect untuk fetch data ketika component mount atau pipelineId berubah
+  useEffect(() => {
+    fetchLeads()
+  }, [pipelineId])
+
+  // Effect untuk fetch data ketika filter berubah
+  useEffect(() => {
+    if (pipelineId) {
+      fetchLeads()
+    }
+  }, [filters.dateFrom, filters.dateTo, filters.sales, filters.search])
 
   const handleLeadClick = (lead) => {
     setSelectedLead(lead)
@@ -255,30 +395,21 @@ export default function PipelinePage() {
   }
 
   const handleMoveLead = (lead, targetStageId) => {
-    // Cari stage asal
-    let sourceStageId = null
-    for (const [stageId, stageLeads] of Object.entries(leadsData)) {
-      if (stageLeads.find(l => l.id === lead.id)) {
-        sourceStageId = stageId
-        break
-      }
-    }
-
     // Jika sudah di stage yang sama, tidak perlu pindah
-    if (sourceStageId === targetStageId) return
+    if (lead.stage === targetStageId) return
 
-    // Update leads data
+    // Update leads data - ubah stage dari lead yang dipindah
     setLeadsData(prev => {
-      const newData = { ...prev }
-      
-      // Remove dari stage asal
-      newData[sourceStageId] = newData[sourceStageId].filter(l => l.id !== lead.id)
-      
-      // Add ke stage tujuan
-      newData[targetStageId] = [...newData[targetStageId], lead]
-      
-      return newData
+      return prev.map(l => {
+        if (l.id === lead.id) {
+          return { ...l, stage: targetStageId }
+        }
+        return l
+      })
     })
+
+    // TODO: Kirim update ke backend
+    // pipelineService.updateLeadStage(lead.id, targetStageId)
   }
 
   const handleFilterChange = (field, value) => {
@@ -289,18 +420,22 @@ export default function PipelinePage() {
   }
 
   const handleApplyFilters = () => {
-    // Logic untuk apply filters bisa ditambahkan di sini
-    console.log('Applied filters:', filters)
+    // Filters akan otomatis diterapkan melalui useEffect
     setIsFilterOpen(false)
   }
 
   const handleResetFilters = () => {
     setFilters({
-      fromDate: '',
-      toDate: '',
-      sales: '',
-      sortBy: 'newest'
+      dateFrom: "",
+      dateTo: "",
+      sales: "",
+      search: "",
+      sort: "newest"
     })
+  }
+
+  const handleSearchChange = (e) => {
+    setFilters(prev => ({ ...prev, search: e.target.value }))
   }
 
   return (
@@ -319,6 +454,12 @@ export default function PipelinePage() {
 
           {/* Filters */}
           <div className="flex items-center gap-4">
+            <Input
+              placeholder="Search leads..."
+              className="max-w-sm"
+              value={filters.search}
+              onChange={handleSearchChange}
+            />
             <Button variant="outline" className="text-black bg-transparent">
               All leads
             </Button>
@@ -348,8 +489,8 @@ export default function PipelinePage() {
                     <Input
                       id="fromDate"
                       type="date"
-                      value={filters.fromDate}
-                      onChange={(e) => handleFilterChange('fromDate', e.target.value)}
+                      value={filters.dateFrom}
+                      onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
                       className="col-span-3"
                     />
                   </div>
@@ -362,8 +503,8 @@ export default function PipelinePage() {
                     <Input
                       id="toDate"
                       type="date"
-                      value={filters.toDate}
-                      onChange={(e) => handleFilterChange('toDate', e.target.value)}
+                      value={filters.dateTo}
+                      onChange={(e) => handleFilterChange('dateTo', e.target.value)}
                       className="col-span-3"
                     />
                   </div>
@@ -394,8 +535,8 @@ export default function PipelinePage() {
                     </label>
                     <select
                       id="sortBy"
-                      value={filters.sortBy}
-                      onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+                      value={filters.sort}
+                      onChange={(e) => handleFilterChange('sort', e.target.value)}
                       className="col-span-3 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <option value="newest">Newest First</option>
@@ -423,17 +564,35 @@ export default function PipelinePage() {
         </div>
 
         {/* Pipeline Stages */}
-        <div className="grid grid-cols-4 gap-6">
-          {stages.map((stage) => (
-            <StageColumn
-              key={stage.id}
-              stage={stage}
-              leads={leadsData[stage.id] || []}
-              onLeadClick={handleLeadClick}
-              onMoveLead={handleMoveLead}
-            />
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Loading pipeline data...</p>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <p className="text-red-600 mb-4">{error}</p>
+              <Button onClick={fetchLeads} variant="outline">
+                Retry
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-4 gap-6">
+             {stages.map((stage) => (
+               <StageColumn
+                 key={stage.id}
+                 stage={stage}
+                 leads={leadsData.filter((lead) => lead.stage === stage.id)}
+                 onLeadClick={handleLeadClick}
+                 onMoveLead={handleMoveLead}
+               />
+             ))}
+           </div>
+        )}
 
         {/* Lead Details Drawer */}
         <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen} direction="right">

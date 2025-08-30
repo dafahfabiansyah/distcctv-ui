@@ -1,5 +1,6 @@
 import { useState, useEffect, createContext, useContext } from 'react'
-import { login as loginAPI, getMe, getBridgeToken, getBridgeTokenDirect, exchangeBridgeToken, verifyToken } from '../services/auth'
+import { getBridgeToken, exchangeBridgeToken } from '../api/auth'
+import { getBridgeTokenDirect, verifyToken } from '../services/auth'
 
 const AuthContext = createContext()
 
@@ -20,8 +21,8 @@ export const AuthProvider = ({ children }) => {
           // Exchange bridge token ke API token
           const exchangeResult = await exchangeBridgeToken(bridgeToken)
           if (exchangeResult.success) {
-            const apiToken = exchangeResult.data.token
-            const userData = exchangeResult.data.user
+            const apiToken = exchangeResult.token
+            const userData = exchangeResult.user
             
             // Simpan token dan user data
             localStorage.setItem('access_token', apiToken)
@@ -82,14 +83,14 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      // Gunakan getBridgeTokenDirect untuk mendapatkan bridge token langsung
-      const bridgeResult = await getBridgeTokenDirect(email, password)
+      // Gunakan getBridgeToken untuk mendapatkan bridge token langsung
+      const bridgeResult = await getBridgeToken(email, password)
       if (bridgeResult.success) {
         // Exchange bridge token ke API token
-        const exchangeResult = await exchangeBridgeToken(bridgeResult.data.bridge_token)
+        const exchangeResult = await exchangeBridgeToken(bridgeResult.data.token)
         if (exchangeResult.success) {
-          const apiToken = exchangeResult.data.token
-          const userData = exchangeResult.data.user
+          const apiToken = exchangeResult.token
+          const userData = exchangeResult.user
           
           // Simpan token dan user data
           localStorage.setItem('access_token', apiToken)
@@ -105,10 +106,10 @@ export const AuthProvider = ({ children }) => {
             }
           }
         } else {
-          throw new Error(exchangeResult.error?.message || 'Failed to exchange bridge token')
+          throw new Error(exchangeResult.message || 'Failed to exchange bridge token')
         }
       } else {
-        throw new Error(bridgeResult.error?.message || 'Login failed')
+        throw new Error(bridgeResult.message || 'Login failed')
       }
     } catch (error) {
       throw error

@@ -15,7 +15,7 @@ const apiClient = axios.create(API_CONFIG);
 
 // API Endpoints
 const ENDPOINTS = {
-  BRIDGE_TOKEN: '/api/auth/bridge-token',
+  GET_BRIDGE_TOKEN: '/api/auth/get-bridge-token',
   EXCHANGE_BRIDGE_TOKEN: '/api/auth/exchange-bridge-token',
   VERIFY_TOKEN: '/api/auth/verify',
   LOGOUT: '/api/auth/logout',
@@ -23,12 +23,17 @@ const ENDPOINTS = {
 
 /**
  * Fetch bridge token from authentication API
+ * @param {string} email - User email
+ * @param {string} password - User password
  * @returns {Promise<Object>} Bridge token response data
  * @throws {Error} When request fails
  */
-export const getBridgeToken = async () => {
+export const getBridgeToken = async (email, password) => {
   try {
-    const response = await apiClient.get(ENDPOINTS.BRIDGE_TOKEN);
+    const response = await apiClient.post(ENDPOINTS.GET_BRIDGE_TOKEN, {
+      email,
+      password
+    });
     return response.data;
   } catch (error) {
     // Enhanced error handling
@@ -38,7 +43,7 @@ export const getBridgeToken = async () => {
     console.error('Bridge Token Error:', {
       message: errorMessage,
       status: statusCode,
-      endpoint: ENDPOINTS.BRIDGE_TOKEN,
+      endpoint: ENDPOINTS.GET_BRIDGE_TOKEN,
     });
     
     throw new Error(`Bridge Token Request Failed: ${errorMessage}`);
@@ -53,11 +58,8 @@ export const getBridgeToken = async () => {
  */
 export const exchangeBridgeToken = async (bridgeToken) => {
   try {
-    const response = await apiClient.get(ENDPOINTS.EXCHANGE_BRIDGE_TOKEN, {
-      headers: {
-        'Authorization': `Bearer ${bridgeToken}`,
-        'Content-Type': 'application/json'
-      }
+    const response = await apiClient.post(ENDPOINTS.EXCHANGE_BRIDGE_TOKEN, {
+      bridge_token: bridgeToken
     });
     return response.data;
   } catch (error) {

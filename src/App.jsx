@@ -35,7 +35,7 @@ const AppContent = () => {
           <Routes>
              <Route path="/" element={<Navigate to="/dashboard" replace />} />
              <Route path="/dashboard" element={<DashboardPage />} />
-             <Route path="/pipeline" element={<PipelinePage />} />
+             {/* <Route path="/pipeline" element={<PipelinePage />} /> */}
              <Route path="/pipeline/:pipelineId" element={<PipelinePage />} />
              <Route path="/omnichannel" element={<OmnichannelPage />} />
            </Routes>

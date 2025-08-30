@@ -98,11 +98,8 @@ export const getBridgeTokenDirect = async (email, password) => {
  */
 export const exchangeBridgeToken = async (bridgeToken) => {
   try {
-    const response = await api.post('/api/auth/exchange-bridge-token', {}, {
-      headers: {
-        'Authorization': `Bearer ${bridgeToken}`,
-        'Content-Type': 'application/json'
-      }
+    const response = await api.post('/api/auth/exchange-bridge-token', {
+      bridge_token: bridgeToken
     })
     
     if (response.data && response.data.success) {

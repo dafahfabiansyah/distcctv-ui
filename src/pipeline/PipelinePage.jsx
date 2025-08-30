@@ -10,7 +10,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-
 import { Input } from "@/components/ui/input"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Mail, Phone, Clock, Plus, MoreHorizontal, Eye, ArrowRight, GripVertical, Filter, MessageSquare } from "lucide-react"
@@ -19,132 +18,6 @@ import ChatInterface from "@/components/ChatInterface"
 import QuotationModal from "./components/QuotationModal"
 import pipelineService from "@/services/pipeline"
 
-// Sample data - will be replaced by API data
-const defaultStages = [
-  { id: "new", name: "New", count: 6, color: "bg-crm-stage-new" },
-  { id: "open", name: "Open", count: 4, color: "bg-crm-stage-open" },
-  { id: "progress", name: "In Progress", count: 3, color: "bg-crm-stage-progress" },
-  { id: "closed", name: "Closed", count: 2, color: "bg-crm-stage-closed" },
-]
-
-const initialLeads = [
-  {
-    id: 1,
-    name: "Arlene McCoy",
-    email: "emailkuyahui@gmail.com",
-    phone: "(405) 555-0128",
-    time: "Today at 4:30 PM",
-    avatar: "/diverse-woman-portrait.png",
-    stage: "new",
-    company: "Sample Company",
-    value: 5000,
-    source: "Website",
-    lastActivity: "Today at 4:30 PM",
-    priority: "medium",
-    tags: [],
-    notes: ""
-  },
-  {
-    id: 2,
-    name: "Wade Warren",
-    email: "emailkuyahui@gmail.com",
-    phone: "(405) 555-0128",
-    time: "Today at 4:30 PM",
-    avatar: "/thoughtful-man.png",
-    stage: "new",
-    company: "Sample Company",
-    value: 3000,
-    source: "Referral",
-    lastActivity: "Today at 4:30 PM",
-    priority: "high",
-    tags: [],
-    notes: ""
-  },
-  {
-    id: 3,
-    name: "Kristin Watson",
-    email: "emailkuyahui@gmail.com",
-    phone: "(405) 555-0128",
-    time: "Today at 4:30 PM",
-    avatar: "/diverse-woman-portrait.png",
-    stage: "open",
-    company: "Sample Company",
-    value: 7500,
-    source: "Social Media",
-    lastActivity: "Today at 4:30 PM",
-    priority: "medium",
-    tags: [],
-    notes: ""
-  },
-  {
-    id: 4,
-    name: "Darlene Robertson",
-    email: "emailkuyahui@gmail.com",
-    phone: "(405) 555-0128",
-    time: "Today at 4:30 PM",
-    avatar: "/diverse-woman-portrait.png",
-    stage: "progress",
-    company: "Sample Company",
-    value: 12000,
-    source: "Email Campaign",
-    lastActivity: "Today at 4:30 PM",
-    priority: "high",
-    tags: [],
-    notes: ""
-  },
-  {
-    id: 5,
-    name: "Annette Black",
-    email: "emailkuyahui@gmail.com",
-    phone: "(405) 555-0128",
-    time: "Today at 4:30 PM",
-    avatar: "/diverse-woman-portrait.png",
-    stage: "closed",
-    company: "Sample Company",
-    value: 8000,
-    source: "Direct",
-    lastActivity: "Today at 4:30 PM",
-    priority: "low",
-    tags: [],
-    notes: ""
-  }
-]
-
-const leadDetails = {
-  name: "Jerome Bell",
-  email: "jeromebell@gmail.com",
-  phone: "(405) 555-0128",
-  avatar: "/thoughtful-man.png",
-  leadOwner: "Esther Howard",
-  company: "Google",
-  jobTitle: "Content Writer",
-  annualRevenue: "$ 5,000",
-  leadSource: "Online store",
-  lastActivity: "2 Jan 2020 at 10:00 AM",
-  upcomingActivity: {
-    title: "Prepare quote for Jerome Bell",
-    description:
-      "She's interested in our new product line and wants our very best price. Please include a detailed breakdown of costs.",
-    reminder: "No reminder",
-    priority: "High",
-    assignedTo: "Esther Howard",
-  },
-  notes: [
-    {
-      id: 1,
-      author: "Esther Howard",
-      time: "Today, 10:00 AM",
-      content:
-        "She's interested in our new product line and wants our very best price. Please include a detailed breakdown of costs.",
-    },
-    {
-      id: 2,
-      author: "Esther Howard",
-      time: "Today, 10:00 AM",
-      content: "Follow up call scheduled for next week.",
-    },
-  ],
-}
 
 // Lead Card Component dengan Drag
 function LeadCard({ lead, onLeadClick }) {
@@ -294,9 +167,9 @@ export default function PipelinePage() {
       console.error('Error fetching stages:', error)
     }
     
-    // Fallback to default stages
-    console.log('Using default stages as fallback')
-    return [...defaultStages]
+    // Return empty array if no stages found
+    console.log('No stages found, returning empty array')
+    return []
   }
 
   // Fetch data leads dari API
@@ -304,10 +177,9 @@ export default function PipelinePage() {
     console.log('fetchLeads called with pipelineId:', pipelineId)
     
     if (!pipelineId) {
-      // Jika tidak ada pipelineId, gunakan data sample
-      console.log('No pipelineId, using sample data')
-      setLeadsData(initialLeads)
-      setStages(defaultStages)
+      console.log('No pipelineId provided')
+      setError('Pipeline ID is required')
+      setLoading(false)
       return
     }
 
@@ -369,9 +241,6 @@ export default function PipelinePage() {
     } catch (err) {
       console.error('Error fetching leads:', err)
       setError('Failed to fetch leads data')
-      // Fallback ke data sample jika error
-      setLeadsData(initialLeads)
-      setStages(defaultStages)
     } finally {
       setLoading(false)
     }
@@ -445,7 +314,7 @@ export default function PipelinePage() {
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-semibold text-black">567 Leads</h1>
+            <h1 className="text-2xl font-semibold text-black">{leadsData.length} Leads</h1>
             <Button className="bg-crm-primary hover:bg-crm-primary-hover text-white">
               <Plus className="h-4 w-4 mr-2" />
               Add Lead
@@ -581,16 +450,19 @@ export default function PipelinePage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-4 gap-6">
-             {stages.map((stage) => (
-               <StageColumn
-                 key={stage.id}
-                 stage={stage}
-                 leads={leadsData.filter((lead) => lead.stage === stage.id)}
-                 onLeadClick={handleLeadClick}
-                 onMoveLead={handleMoveLead}
-               />
-             ))}
+          <div className="overflow-x-auto">
+            <div className="flex gap-6 pb-4" style={{minWidth: `${stages.length * 300}px`}}>
+               {stages.map((stage) => (
+                 <div key={stage.id} className="flex-shrink-0" style={{width: '280px'}}>
+                   <StageColumn
+                     stage={stage}
+                     leads={leadsData.filter((lead) => lead.stage === stage.id)}
+                     onLeadClick={handleLeadClick}
+                     onMoveLead={handleMoveLead}
+                   />
+                 </div>
+               ))}
+             </div>
            </div>
         )}
 
@@ -792,24 +664,24 @@ export default function PipelinePage() {
                   {/* Lead Info */}
                   <div className="flex items-start gap-4">
                     <Avatar className="h-12 w-12">
-                      <AvatarImage src={selectedLead?.avatar || leadDetails.avatar || "/placeholder.svg"} />
+                      <AvatarImage src={selectedLead?.avatar || "/placeholder.svg"} />
                       <AvatarFallback>
-                        {(selectedLead?.name || leadDetails.name)
-                          .split(" ")
+                        {selectedLead?.name
+                          ?.split(" ")
                           .map((n) => n[0])
-                          .join("")}
+                          .join("") || "?"}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <h2 className="text-xl font-semibold text-gray-900">{selectedLead?.name || leadDetails.name}</h2>
+                      <h2 className="text-xl font-semibold text-gray-900">{selectedLead?.name || 'No Name'}</h2>
                       <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
                         <div className="flex items-center gap-1">
                           <Mail className="h-4 w-4" />
-                          {selectedLead?.email || leadDetails.email}
+                          {selectedLead?.email || 'No Email'}
                         </div>
                         <div className="flex items-center gap-1">
                           <Phone className="h-4 w-4" />
-                          {selectedLead?.phone || leadDetails.phone}
+                          {selectedLead?.phone || 'No Phone'}
                         </div>
                       </div>
                     </div>
@@ -843,53 +715,27 @@ export default function PipelinePage() {
                           <AccordionContent className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                               <div>
-                                <label className="text-sm font-medium text-gray-500">Lead owner</label>
-                                <p className="text-sm text-gray-900 mt-1">{leadDetails.leadOwner}</p>
-                              </div>
-                              <div>
                                 <label className="text-sm font-medium text-gray-500">Company</label>
-                                <p className="text-sm text-black mt-1">{leadDetails.company}</p>
+                                <p className="text-sm text-black mt-1">{selectedLead?.company || 'No Company'}</p>
                               </div>
                               <div>
-                                <label className="text-sm font-medium text-gray-500">Job Title</label>
-                                <p className="text-sm text-black mt-1">{leadDetails.jobTitle}</p>
+                                <label className="text-sm font-medium text-gray-500">Value</label>
+                                <p className="text-sm text-black mt-1">${selectedLead?.value || 0}</p>
                               </div>
                               <div>
-                                <label className="text-sm font-medium text-gray-500">Annual revenue</label>
-                                <p className="text-sm text-black mt-1">{leadDetails.annualRevenue}</p>
+                                <label className="text-sm font-medium text-gray-500">Priority</label>
+                                <p className="text-sm text-black mt-1">{selectedLead?.priority || 'Medium'}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium text-gray-500">Created</label>
+                                <p className="text-sm text-black mt-1">{selectedLead?.created_at || 'Unknown'}</p>
                               </div>
                             </div>
                             
                             <div>
                               <label className="text-sm font-medium text-gray-500">Lead source</label>
-                              <p className="text-sm text-black mt-1">{leadDetails.leadSource}</p>
-                              <p className="text-sm text-gray-500 mt-1">Last activity: {leadDetails.lastActivity}</p>
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-
-                        {/* Upcoming Activity */}
-                        <AccordionItem value="activity">
-                          <AccordionTrigger className="text-base font-medium">Upcoming Activity</AccordionTrigger>
-                          <AccordionContent>
-                            <div className="bg-gray-50 rounded-lg p-4">
-                              <h4 className="font-medium text-gray-900 mb-2">{leadDetails.upcomingActivity.title}</h4>
-                              <p className="text-sm text-gray-600 mb-3">{leadDetails.upcomingActivity.description}</p>
-
-                              <div className="grid grid-cols-3 gap-4 text-sm">
-                                <div>
-                                  <label className="text-gray-500">Reminder</label>
-                                  <p className="text-gray-900">{leadDetails.upcomingActivity.reminder}</p>
-                                </div>
-                                <div className="flex flex-col gap-1">
-                                  <label className="text-gray-500">Task Priority</label>
-                                  <Badge className="bg-crm-badge-high text-white w-fit">{leadDetails.upcomingActivity.priority}</Badge>
-                                </div>
-                                <div>
-                                  <label className="text-gray-500">Assigned to</label>
-                                  <p className="text-gray-900">{leadDetails.upcomingActivity.assignedTo}</p>
-                                </div>
-                              </div>
+                              <p className="text-sm text-black mt-1">{selectedLead?.source || 'Unknown'}</p>
+                              <p className="text-sm text-gray-500 mt-1">Last activity: {selectedLead?.lastActivity || 'Unknown'}</p>
                             </div>
                           </AccordionContent>
                         </AccordionItem>
@@ -906,18 +752,13 @@ export default function PipelinePage() {
                           </AccordionTrigger>
                           <AccordionContent>
                             <div className="space-y-4">
-                              {leadDetails.notes.map((note) => (
-                                <div key={note.id} className="border-l-2 border-gray-200 pl-4">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-sm font-medium text-gray-900">{note.author}</span>
-                                    <span className="text-sm text-gray-500">{note.time}</span>
-                                    <Button variant="ghost" size="sm">
-                                      <MoreHorizontal className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                  <p className="text-sm text-gray-600">{note.content}</p>
+                              {selectedLead?.notes ? (
+                                <div className="border-l-2 border-gray-200 pl-4">
+                                  <p className="text-sm text-gray-600">{selectedLead.notes}</p>
                                 </div>
-                              ))}
+                              ) : (
+                                <p className="text-sm text-gray-500 italic">No notes available</p>
+                              )}
                             </div>
                           </AccordionContent>
                         </AccordionItem>

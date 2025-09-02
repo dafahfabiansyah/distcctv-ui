@@ -40,10 +40,10 @@ class PipelineService {
     try {
       const response = await api.get(`/api/v2/crm/pipelines/${pipelineId}/leads`, {
         params: {
-          date_from: params.dateFrom,
-          date_to: params.dateTo,
-          sales: params.sales,
-          search: params.search
+          date_from: params.date_from || params.dateFrom || '',
+          date_to: params.date_to || params.dateTo || '',
+          sales: params.sales || '',
+          search: params.search || ''
         }
       });
       return response.data;

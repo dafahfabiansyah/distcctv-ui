@@ -131,13 +131,27 @@ export default function PipelinePage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
+  // Function to get default date range (7 days back)
+  const getDefaultDateRange = () => {
+    const today = new Date()
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(today.getDate() - 7)
+    
+    return {
+      from: sevenDaysAgo.toISOString().split('T')[0], // Format: YYYY-MM-DD
+      to: today.toISOString().split('T')[0]
+    }
+  }
+
   // Debug: log pipelineId
   console.log('PipelinePage - pipelineId:', pipelineId)
   console.log('PipelinePage - leadsData length:', leadsData.length)
   console.log('PipelinePage - stages length:', stages.length)
+  
+  const defaultDates = getDefaultDateRange()
   const [filters, setFilters] = useState({
-    dateFrom: "",
-    dateTo: "",
+    dateFrom: defaultDates.from,
+    dateTo: defaultDates.to,
     sales: "",
     search: "",
     sort: "newest"
@@ -175,6 +189,7 @@ export default function PipelinePage() {
   // Fetch data leads dari API
   const fetchLeads = async () => {
     console.log('fetchLeads called with pipelineId:', pipelineId)
+    console.log('fetchLeads called with filters:', filters)
     
     if (!pipelineId) {
       console.log('No pipelineId provided')
@@ -191,7 +206,17 @@ export default function PipelinePage() {
       const stagesData = await fetchStages()
       setStages(stagesData)
       
-      const response = await pipelineService.getLeads(pipelineId, filters)
+      // Prepare query parameters for API call
+      const queryParams = {
+        date_from: filters.dateFrom || '',
+        date_to: filters.dateTo || '',
+        sales: filters.sales || '',
+        search: filters.search || ''
+      }
+      
+      console.log('API call with query params:', queryParams)
+      
+      const response = await pipelineService.getLeads(pipelineId, queryParams)
       
       // Debug: log response untuk melihat struktur data
       console.log('API Response:', response)
@@ -294,9 +319,10 @@ export default function PipelinePage() {
   }
 
   const handleResetFilters = () => {
+    const defaultDates = getDefaultDateRange()
     setFilters({
-      dateFrom: "",
-      dateTo: "",
+      dateFrom: defaultDates.from,
+      dateTo: defaultDates.to,
       sales: "",
       search: "",
       sort: "newest"

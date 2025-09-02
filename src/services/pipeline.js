@@ -69,19 +69,35 @@ class PipelineService {
   }
 
   /**
-   * Update stage lead
+   * Update stage lead (khusus stage saja)
    * @param {string|number} leadId - ID lead
    * @param {string|number} stageId - ID stage baru
    * @returns {Promise} Response dari API
    */
   async updateLeadStage(leadId, stageId) {
     try {
-      const response = await api.post(`/api/v2/crm/lead/update/${leadId}`, {
+      const response = await api.put(`/api/v2/crm/leads/${leadId}/stage`, {
         stageId: stageId
       });
       return response.data;
     } catch (error) {
       console.error('Error updating lead stage:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update data lead lengkap (semua field)
+   * @param {string|number} leadId - ID lead
+   * @param {Object} leadData - Data lead yang akan diupdate
+   * @returns {Promise} Response dari API
+   */
+  async updateLead(leadId, leadData) {
+    try {
+      const response = await api.put(`/api/v2/crm/leads/${leadId}`, leadData);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating lead:', error);
       throw error;
     }
   }

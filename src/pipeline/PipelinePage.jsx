@@ -20,7 +20,7 @@ import pipelineService from "@/services/pipeline"
 
 
 // Lead Card Component dengan Drag
-function LeadCard({ lead, onLeadClick }) {
+function LeadCard({ lead, onLeadClick, onUpdateLead }) {
   const [{ isDragging }, drag] = useDrag({
     type: 'lead',
     item: { id: lead.id, lead },
@@ -70,7 +70,7 @@ function LeadCard({ lead, onLeadClick }) {
 }
 
 // Stage Column Component dengan Drop
-function StageColumn({ stage, leads, onLeadClick, onMoveLead }) {
+function StageColumn({ stage, leads, onLeadClick, onMoveLead, onUpdateLead }) {
   const [{ isOver }, drop] = useDrop({
     accept: 'lead',
     drop: (item) => {
@@ -102,7 +102,12 @@ function StageColumn({ stage, leads, onLeadClick, onMoveLead }) {
       {/* Cards Area */}
       <div className="space-y-3">
         {leads.map((lead) => (
-          <LeadCard key={lead.id} lead={lead} onLeadClick={onLeadClick} />
+          <LeadCard 
+            key={lead.id} 
+            lead={lead} 
+            onLeadClick={onLeadClick}
+            onUpdateLead={onUpdateLead}
+          />
         ))}
         
         {/* Empty state dengan visual indicator */}
@@ -288,22 +293,95 @@ export default function PipelinePage() {
     setIsDrawerOpen(true)
   }
 
-  const handleMoveLead = (lead, targetStageId) => {
+  const handleMoveLead = async (lead, targetStageId) => {
     // Jika sudah di stage yang sama, tidak perlu pindah
     if (lead.stage === targetStageId) return
 
-    // Update leads data - ubah stage dari lead yang dipindah
-    setLeadsData(prev => {
-      return prev.map(l => {
-        if (l.id === lead.id) {
-          return { ...l, stage: targetStageId }
-        }
-        return l
-      })
-    })
+    console.log('Moving lead:', lead.id, 'to stage:', targetStageId)
 
-    // TODO: Kirim update ke backend
-    // pipelineService.updateLeadStage(lead.id, targetStageId)
+    try {
+      // Update UI dulu untuk responsiveness (optimistic update)
+      setLeadsData(prev => {
+        return prev.map(l => {
+          if (l.id === lead.id) {
+            return { ...l, stage: targetStageId }
+          }
+          return l
+        })
+      })
+
+      // Update counts di stages
+      setStages(prev => {
+        return prev.map(stage => {
+          if (stage.id === targetStageId) {
+            return { ...stage, count: stage.count + 1 }
+          }
+          if (stage.id === lead.stage) {
+            return { ...stage, count: Math.max(0, stage.count - 1) }
+          }
+          return stage
+        })
+      })
+
+      // Kirim update ke backend
+      const response = await pipelineService.updateLeadStage(lead.id, targetStageId)
+      console.log('Lead stage updated successfully:', response)
+      
+    } catch (error) {
+      console.error('Error updating lead stage:', error)
+      
+      // Rollback UI changes jika API gagal
+      setLeadsData(prev => {
+        return prev.map(l => {
+          if (l.id === lead.id) {
+            return { ...l, stage: lead.stage } // Kembalikan ke stage sebelumnya
+          }
+          return l
+        })
+      })
+
+      // Rollback stage counts
+      setStages(prev => {
+        return prev.map(stage => {
+          if (stage.id === targetStageId) {
+            return { ...stage, count: Math.max(0, stage.count - 1) }
+          }
+          if (stage.id === lead.stage) {
+            return { ...stage, count: stage.count + 1 }
+          }
+          return stage
+        })
+      })
+      
+      // Show error message to user
+      alert('Failed to move lead. Please try again.')
+    }
+  }
+
+  // Fungsi baru untuk update lead lengkap
+  const handleUpdateLead = async (leadId, leadData) => {
+    console.log('Updating lead:', leadId, 'with data:', leadData)
+
+    try {
+      const response = await pipelineService.updateLead(leadId, leadData)
+      console.log('Lead updated successfully:', response)
+      
+      // Update lead data di state jika berhasil
+      setLeadsData(prev => {
+        return prev.map(l => {
+          if (l.id === leadId) {
+            return { ...l, ...leadData }
+          }
+          return l
+        })
+      })
+
+      return response
+    } catch (error) {
+      console.error('Error updating lead:', error)
+      alert('Failed to update lead. Please try again.')
+      throw error
+    }
   }
 
   const handleFilterChange = (field, value) => {
@@ -485,6 +563,7 @@ export default function PipelinePage() {
                      leads={leadsData.filter((lead) => lead.stage === stage.id)}
                      onLeadClick={handleLeadClick}
                      onMoveLead={handleMoveLead}
+                     onUpdateLead={handleUpdateLead}
                    />
                  </div>
                ))}
@@ -716,13 +795,82 @@ export default function PipelinePage() {
                     </Button>
                   </div>
 
-                  {/* Status Badges - Tetap di atas tanpa accordion */}
-                  <div className="flex flex-row w-full">
-                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100 rounded-r-none border-r-0 flex-1 justify-center">✓ New</Badge>
-                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100 rounded-none border-r-0 flex-1 justify-center">✓ Open</Badge>
-                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100 rounded-none border-r-0 flex-1 justify-center">In Progress</Badge>
-                    <Badge variant="outline" className="text-gray-600 bg-gray-50 rounded-none border-r-0 flex-1 justify-center">Open deals</Badge>
-                    <Badge variant="outline" className="text-gray-600 bg-gray-50 rounded-l-none flex-1 justify-center">Closed</Badge>
+                  {/* Status Badges - Menampilkan stages sebenarnya */}
+                  <div className="space-y-3">
+                    <div className="flex flex-row w-full">
+                      {stages.map((stage, index) => {
+                        const isCurrentStage = selectedLead?.stage === stage.id
+                        const isCompletedStage = selectedLead?.stage && stages.findIndex(s => s.id === selectedLead.stage) > index
+                        const isFirstStage = index === 0
+                        const isLastStage = index === stages.length - 1
+                        
+                        // Determine badge styling
+                        let badgeClasses = "flex-1 justify-center border-r-0 "
+                        
+                        // Rounded corners
+                        if (isFirstStage) {
+                          badgeClasses += "rounded-r-none "
+                        } else if (isLastStage) {
+                          badgeClasses += "rounded-l-none "
+                        } else {
+                          badgeClasses += "rounded-none "
+                        }
+                        
+                        // Colors based on stage status
+                        if (isCurrentStage) {
+                          // Current stage - highlighted in blue
+                          badgeClasses += "bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-200 font-medium"
+                        } else if (isCompletedStage) {
+                          // Completed stages - green with checkmark
+                          badgeClasses += "bg-green-100 text-green-800 hover:bg-green-100 border-green-200"
+                        } else {
+                          // Future stages - gray
+                          badgeClasses += "bg-gray-50 text-gray-600 hover:bg-gray-50 border-gray-200"
+                        }
+                        
+                        return (
+                          <Badge
+                            key={stage.id}
+                            variant="outline"
+                            className={badgeClasses}
+                            title={`Stage: ${stage.name}${isCurrentStage ? ' (Current)' : ''}`}
+                          >
+                            <div className="flex items-center gap-1 min-w-0">
+                              {(isCurrentStage || isCompletedStage) && (
+                                <span className="text-xs">
+                                  {isCurrentStage ? '●' : '✓'}
+                                </span>
+                              )}
+                              <span className="truncate text-xs">
+                                {stage.name}
+                              </span>
+                            </div>
+                          </Badge>
+                        )
+                      })}
+                    </div>
+
+                    {/* Progress Bar */}
+                    {/* {selectedLead?.stage && stages.length > 0 && (
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                          style={{
+                            width: `${((stages.findIndex(s => s.id === selectedLead.stage) + 1) / stages.length) * 100}%`
+                          }}
+                        />
+                      </div>
+                    )} */}
+
+                    {/* Current Stage Info */}
+                    {selectedLead?.stage && (
+                      <div className="text-center text-sm text-gray-600">
+                        Stage {stages.findIndex(s => s.id === selectedLead.stage) + 1} dari {stages.length}: 
+                        <span className="font-medium text-blue-600 ml-1">
+                          {stages.find(s => s.id === selectedLead.stage)?.name || 'Unknown'}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Layout dengan Accordion dan Chat Preview */}

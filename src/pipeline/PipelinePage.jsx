@@ -251,7 +251,14 @@ export default function PipelinePage() {
             created_at: lead.created_at,
             updated_at: lead.updated_at,
             time: lead.updated_at,
-            avatar: '/diverse-woman-portrait.png' // Default avatar
+            avatar: '/diverse-woman-portrait.png', // Default avatar
+            // Additional fields for lead information
+            keyword: lead.keyword || '',
+            city: lead.city?.name || lead.city_name || '',
+            automation_reason: lead.sales_assign_reason || '',
+            supervisor_advice: lead.supervisor_ai_advice || '',
+            chat_score: lead.lead_opportunity_score || '',
+            score_reason: lead.lead_opportunity_reason || ''
           })
         })
         
@@ -688,37 +695,17 @@ export default function PipelinePage() {
                     <label htmlFor="assignee" className="text-sm font-medium text-gray-700">
                       @Tag
                     </label>
-                    <Select>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Pilih nama untuk di-tag" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="esther-howard">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
-                              EH
-                            </div>
-                            <span>Esther Howard</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="jenny-wilson">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
-                              JW
-                            </div>
-                            <span>Jenny Wilson</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="wade-warren">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
-                              WW
-                            </div>
-                            <span>Wade Warren</span>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <select
+                      name="assignee"
+                      className="w-full flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">Pilih nama untuk di-tag</option>
+                      <option value="1">Admin</option>
+                      <option value="2">Sales 1</option>
+                      <option value="3">Sales 2</option>
+                      <option value="4">Manager</option>
+                      {/* TODO: Load users from API */}
+                    </select>
                     <p className="text-xs text-gray-500">
                       Pilih nama untuk memberikan notifikasi dan assignment
                     </p>
@@ -739,21 +726,64 @@ export default function PipelinePage() {
                     <Button
                       type="submit"
                       className="bg-blue-600 hover:bg-blue-700 text-white"
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.preventDefault()
-                        // Save note logic
-                        const formData = {
-                          requirements: document.getElementById('requirements').value,
-                          obstacles: document.getElementById('obstacles').value,
-                          assignee: document.querySelector('[name="assignee"]')?.value,
-                          priority: document.querySelector('[name="priority"]')?.value,
-                          followupDate: document.getElementById('followup-date').value,
-                          timestamp: new Date().toISOString(),
-                          leadId: selectedLead?.id
+                        
+                        if (!selectedLead?.id) {
+                          alert('No lead selected')
+                          return
                         }
-                        console.log('Saving note:', formData)
-                        // Here you would typically send this to your API
-                        alert('Note berhasil disimpan!')
+
+                        try {
+                          // Ambil data dari form
+                          const requirements = document.getElementById('requirements').value
+                          const obstacles = document.getElementById('obstacles').value
+                          const assigneeSelect = document.querySelector('select[name="assignee"]')
+                          const assignee = assigneeSelect?.value
+
+                          // Gabungkan notes menjadi satu string
+                          let noteText = ''
+                          if (requirements) {
+                            noteText += `Kebutuhan: ${requirements}\n\n`
+                          }
+                          if (obstacles) {
+                            noteText += `Kendala: ${obstacles}\n\n`
+                          }
+                          if (assignee) {
+                            noteText += `Tagged: ${assignee}\n\n`
+                          }
+                          noteText += `Last updated: ${new Date().toLocaleString()}`
+
+                          // Update lead dengan notes baru
+                          const updateData = {
+                            note: noteText
+                          }
+                          
+                          // Jika ada assignee, tambahkan ke update data
+                          if (assignee && assignee !== 'none') {
+                            updateData.user_id = parseInt(assignee)
+                            updateData.tag = parseInt(assignee) // Untuk tagging
+                          }
+
+                          console.log('Saving note for lead:', selectedLead.id, updateData)
+
+                          const response = await handleUpdateLead(selectedLead.id, updateData)
+                          
+                          // Update selectedLead dengan data baru
+                          setSelectedLead(prev => ({
+                            ...prev,
+                            notes: noteText
+                          }))
+
+                          alert('Note berhasil disimpan!')
+                          
+                          // Reset form
+                          document.querySelector('form').reset()
+                          
+                        } catch (error) {
+                          console.error('Error saving note:', error)
+                          alert('Failed to save note. Please try again.')
+                        }
                       }}
                     >
                       Save Note
@@ -914,25 +944,188 @@ export default function PipelinePage() {
                           </AccordionContent>
                         </AccordionItem>
 
-                        {/* Notes */}
+                        {/* Lead Details Extended */}
                         <AccordionItem value="notes">
                           <AccordionTrigger className="text-base font-medium">
                             <div className="flex items-center justify-between w-full mr-4">
-                              <span>Notes</span>
-                              <Button variant="link" size="sm" className="text-crm-primary p-0 h-auto">
-                                Add note
-                              </Button>
+                              <span>Lead Information</span>
                             </div>
                           </AccordionTrigger>
                           <AccordionContent>
                             <div className="space-y-4">
-                              {selectedLead?.notes ? (
-                                <div className="border-l-2 border-gray-200 pl-4">
-                                  <p className="text-sm text-gray-600">{selectedLead.notes}</p>
+                              {/* Basic Info Grid */}
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <label className="text-sm font-medium text-gray-500">Name</label>
+                                  <p className="text-sm text-black mt-1">{selectedLead?.name || '-'}</p>
                                 </div>
-                              ) : (
-                                <p className="text-sm text-gray-500 italic">No notes available</p>
-                              )}
+                                <div>
+                                  <label className="text-sm font-medium text-gray-500">Phone</label>
+                                  <p className="text-sm text-black mt-1">{selectedLead?.phone || '-'}</p>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium text-gray-500">Source</label>
+                                  <p className="text-sm text-blue-600 mt-1">{selectedLead?.source || 'Unknown'}</p>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium text-gray-500">Track ID</label>
+                                  <p className="text-sm text-black mt-1">{selectedLead?.id || '-'}</p>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium text-gray-500">Keyword</label>
+                                  <p className="text-sm text-black mt-1">{selectedLead?.keyword || '-'}</p>
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium text-gray-500">Amount</label>
+                                  <p className="text-sm text-black mt-1">Rp {selectedLead?.value?.toLocaleString() || '0'}</p>
+                                </div>
+                                <div className="col-span-2">
+                                  <label className="text-sm font-medium text-gray-500">City</label>
+                                  <p className="text-sm text-black mt-1">{selectedLead?.city || '-'}</p>
+                                </div>
+                              </div>
+
+                              <hr className="my-4" />
+
+                              {/* Responsible Section */}
+                              <div className="space-y-3">
+                                <div>
+                                  <label className="text-sm font-medium text-gray-500">Responsible</label>
+                                  <select 
+                                    name="responsible"
+                                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    defaultValue={selectedLead?.responsible || ''}
+                                  >
+                                    <option value="">Select Responsible</option>
+                                    <option value="kosong">Kosong</option>
+                                    <option value="1">Admin</option>
+                                    <option value="2">Sales 1</option>
+                                    <option value="3">Sales 2</option>
+                                  </select>
+                                </div>
+
+                                <div>
+                                  <label className="text-sm font-medium text-gray-500">Automation Reason Assigning</label>
+                                  <textarea 
+                                    name="automation_reason"
+                                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                    rows="2"
+                                    placeholder="Enter automation reason..."
+                                    defaultValue={selectedLead?.automation_reason || ''}
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="text-sm font-medium text-gray-500">Automation Supervisor Advice</label>
+                                  <textarea 
+                                    name="supervisor_advice"
+                                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                    rows="2" 
+                                    placeholder="Enter supervisor advice..."
+                                    defaultValue={selectedLead?.supervisor_advice || ''}
+                                  />
+                                </div>
+                              </div>
+
+                              <hr className="my-4" />
+
+                              {/* Chat Score Opportunity */}
+                              <div>
+                                <label className="text-sm font-medium text-gray-500 block mb-2">Chat Score Opportunity</label>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="text-xs font-medium text-gray-400">Score</label>
+                                    <input 
+                                      type="number"
+                                      name="chat_score"
+                                      className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      placeholder="0-100"
+                                      min="0"
+                                      max="100"
+                                      defaultValue={selectedLead?.chat_score || ''}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs font-medium text-gray-400">Reason</label>
+                                    <input 
+                                      type="text"
+                                      name="score_reason"
+                                      className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      placeholder="Enter reason..."
+                                      defaultValue={selectedLead?.score_reason || ''}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Save Button */}
+                              <div className="pt-4 border-t">
+                                <Button 
+                                  className="bg-blue-600 hover:bg-blue-700 text-white w-full"
+                                  onClick={async () => {
+                                    if (!selectedLead?.id) {
+                                      alert('No lead selected')
+                                      return
+                                    }
+
+                                    try {
+                                      // Ambil data dari form
+                                      const responsible = document.querySelector('select[name="responsible"]')?.value
+                                      const automationReason = document.querySelector('textarea[name="automation_reason"]')?.value
+                                      const supervisorAdvice = document.querySelector('textarea[name="supervisor_advice"]')?.value
+                                      const chatScore = document.querySelector('input[name="chat_score"]')?.value
+                                      const scoreReason = document.querySelector('input[name="score_reason"]')?.value
+
+                                      const updateData = {}
+                                      
+                                      // Update hanya field yang diubah
+                                      if (responsible !== undefined && responsible !== selectedLead.responsible) {
+                                        updateData.user_id = responsible === '' ? null : parseInt(responsible)
+                                      }
+                                      if (automationReason !== selectedLead.automation_reason) {
+                                        updateData.sales_assign_reason = automationReason
+                                      }
+                                      if (supervisorAdvice !== selectedLead.supervisor_advice) {
+                                        updateData.supervisor_ai_advice = supervisorAdvice
+                                      }
+                                      if (chatScore !== selectedLead.chat_score) {
+                                        updateData.lead_opportunity_score = chatScore
+                                      }
+                                      if (scoreReason !== selectedLead.score_reason) {
+                                        updateData.lead_opportunity_reason = scoreReason
+                                      }
+
+                                      if (Object.keys(updateData).length === 0) {
+                                        alert('No changes to save')
+                                        return
+                                      }
+
+                                      console.log('Saving lead information:', selectedLead.id, updateData)
+                                      
+                                      const response = await handleUpdateLead(selectedLead.id, updateData)
+                                      
+                                      // Update selectedLead dengan data baru
+                                      setSelectedLead(prev => ({
+                                        ...prev,
+                                        ...updateData,
+                                        responsible: responsible || prev.responsible,
+                                        automation_reason: automationReason || prev.automation_reason,
+                                        supervisor_advice: supervisorAdvice || prev.supervisor_advice,
+                                        chat_score: chatScore || prev.chat_score,
+                                        score_reason: scoreReason || prev.score_reason
+                                      }))
+
+                                      alert('Lead information saved successfully!')
+                                      
+                                    } catch (error) {
+                                      console.error('Error saving lead information:', error)
+                                      alert('Failed to save lead information. Please try again.')
+                                    }
+                                  }}
+                                >
+                                  Save Information
+                                </Button>
+                              </div>
                             </div>
                           </AccordionContent>
                         </AccordionItem>

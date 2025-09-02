@@ -16,12 +16,29 @@ const api = axios.create(API_CONFIG)
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('access_token')
+    console.log('Using token:', token ? `${token.substring(0, 20)}...` : 'No token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
     return config
   },
   (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// Add response interceptor untuk debugging
+api.interceptors.response.use(
+  (response) => {
+    return response
+  },
+  (error) => {
+    console.error('API Error:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      url: error.config?.url
+    })
     return Promise.reject(error)
   }
 )
@@ -98,6 +115,24 @@ class PipelineService {
       return response.data;
     } catch (error) {
       console.error('Error updating lead:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update notes lead (shortcut untuk update field note saja)
+   * @param {string|number} leadId - ID lead
+   * @param {string} noteText - Text note yang akan disimpan
+   * @returns {Promise} Response dari API
+   */
+  async updateLeadNotes(leadId, noteText) {
+    try {
+      const response = await api.put(`/api/v2/crm/leads/${leadId}`, {
+        note: noteText
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error updating lead notes:', error);
       throw error;
     }
   }

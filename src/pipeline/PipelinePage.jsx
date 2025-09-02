@@ -15,7 +15,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Mail, Phone, Clock, Plus, MoreHorizontal, Eye, ArrowRight, GripVertical, Filter, MessageSquare } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ChatInterface from "@/components/ChatInterface"
-import QuotationModal from "./components/QuotationModal"
 import pipelineService from "@/services/pipeline"
 
 
@@ -135,6 +134,14 @@ export default function PipelinePage() {
   const [accordionValue, setAccordionValue] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+
+  // Quotation states
+  const [quotations, setQuotations] = useState([])
+  const [showCreateQuotationModal, setShowCreateQuotationModal] = useState(false)
+  const [showUpdateQuotationModal, setShowUpdateQuotationModal] = useState(false)
+  const [selectedQuotation, setSelectedQuotation] = useState(null)
+  const [quotationProducts, setQuotationProducts] = useState([])
+  const [loadingQuotations, setLoadingQuotations] = useState(false)
 
   // Function to get default date range (7 days back)
   const getDefaultDateRange = () => {
@@ -298,6 +305,8 @@ export default function PipelinePage() {
   const handleLeadClick = (lead) => {
     setSelectedLead(lead)
     setIsDrawerOpen(true)
+    // Fetch quotations when lead is selected
+    fetchQuotations(lead.id)
   }
 
   const handleMoveLead = async (lead, targetStageId) => {
@@ -389,6 +398,249 @@ export default function PipelinePage() {
       alert('Failed to update lead. Please try again.')
       throw error
     }
+  }
+
+  // Quotation functions
+  const fetchQuotations = async (leadId) => {
+    if (!leadId) return
+    
+    try {
+      setLoadingQuotations(true)
+      const response = await pipelineService.getQuotations(leadId)
+      setQuotations(response.quotations || [])
+    } catch (error) {
+      console.error('Error fetching quotations:', error)
+      setQuotations([])
+    } finally {
+      setLoadingQuotations(false)
+    }
+  }
+
+  const handleCreateQuotation = async (quotationData) => {
+    if (!selectedLead?.id) return
+
+    try {
+      // Validate that there's at least one product
+      if (quotationProducts.length === 0) {
+        alert('Please add at least one product to the quotation.')
+        return
+      }
+
+      // Validate products data
+      const invalidProduct = quotationProducts.find(product => 
+        !product.product_name.trim() || 
+        !product.unit.trim() || 
+        product.qty <= 0 || 
+        product.price <= 0
+      )
+
+      if (invalidProduct) {
+        alert('Please fill in all required fields for each product (Product Name, Qty > 0, Unit, Price > 0).')
+        return
+      }
+
+      // Convert FormData to JSON object for Sanctum API
+      const data = {
+        duedate: quotationData.get('duedate'),
+        product_name: [],
+        qty: [],
+        unit: [],
+        price: [],
+        ppn: [],
+        discount: []
+      }
+
+      // Extract products data from FormData
+      quotationProducts.forEach((product, index) => {
+        data.product_name.push(product.product_name || '')
+        data.qty.push(Number(product.qty) || 0)
+        data.unit.push(product.unit || '')
+        data.price.push(Number(product.price) || 0)
+        data.ppn.push(Number(product.ppn) || 0)
+        data.discount.push(Number(product.discount) || 0)
+      })
+
+      console.log('Creating quotation with data:', data)
+
+      const response = await pipelineService.createQuotation(selectedLead.id, data)
+      await fetchQuotations(selectedLead.id) // Reload quotations
+      setShowCreateQuotationModal(false)
+      setQuotationProducts([]) // Reset products
+      alert('Quotation created successfully!')
+      return response
+    } catch (error) {
+      console.error('Error creating quotation:', error)
+      alert('Failed to create quotation. Please try again.')
+      throw error
+    }
+  }
+
+  const handleUpdateQuotation = async (quotationData) => {
+    if (!selectedQuotation?.id) return
+
+    try {
+      // Validate that there's at least one product
+      if (quotationProducts.length === 0) {
+        alert('Please add at least one product to the quotation.')
+        return
+      }
+
+      // Validate products data
+      const invalidProduct = quotationProducts.find(product => 
+        !product.product_name.trim() || 
+        !product.unit.trim() || 
+        product.qty <= 0 || 
+        product.price <= 0
+      )
+
+      if (invalidProduct) {
+        alert('Please fill in all required fields for each product (Product Name, Qty > 0, Unit, Price > 0).')
+        return
+      }
+
+      // Convert FormData to JSON object for Sanctum API
+      const data = {
+        duedate: quotationData.get('duedate'),
+        product_name: [],
+        qty: [],
+        unit: [],
+        price: [],
+        ppn: [],
+        discount: []
+      }
+
+      // Extract products data from FormData
+      quotationProducts.forEach((product, index) => {
+        data.product_name.push(product.product_name || '')
+        data.qty.push(Number(product.qty) || 0)
+        data.unit.push(product.unit || '')
+        data.price.push(Number(product.price) || 0)
+        data.ppn.push(Number(product.ppn) || 0)
+        data.discount.push(Number(product.discount) || 0)
+      })
+
+      console.log('Updating quotation with data:', data)
+
+      const response = await pipelineService.updateQuotation(selectedQuotation.id, data)
+      await fetchQuotations(selectedLead.id) // Reload quotations
+      setShowUpdateQuotationModal(false)
+      setSelectedQuotation(null)
+      setQuotationProducts([]) // Reset products
+      alert('Quotation updated successfully!')
+      return response
+    } catch (error) {
+      console.error('Error updating quotation:', error)
+      alert('Failed to update quotation. Please try again.')
+      throw error
+    }
+  }
+
+  const handleDeleteQuotation = async (quotationId) => {
+    if (!window.confirm('Are you sure you want to delete this quotation?')) return
+
+    try {
+      await pipelineService.deleteQuotation(quotationId)
+      await fetchQuotations(selectedLead.id) // Reload quotations
+      alert('Quotation deleted successfully!')
+    } catch (error) {
+      console.error('Error deleting quotation:', error)
+      alert('Failed to delete quotation. Please try again.')
+    }
+  }
+
+  const handlePoolToMain = async (quotationId) => {
+    try {
+      const response = await pipelineService.poolToMain(quotationId)
+      
+      // Update lead amount in the UI
+      if (selectedLead) {
+        setSelectedLead(prev => ({
+          ...prev,
+          amount: response.amount || 0
+        }))
+      }
+
+      // Update lead in the leads data
+      setLeadsData(prev => {
+        return prev.map(lead => {
+          if (lead.id === selectedLead?.id) {
+            return { ...lead, amount: response.amount || 0 }
+          }
+          return lead
+        })
+      })
+
+      alert('Amount pooled to main successfully!')
+    } catch (error) {
+      console.error('Error pooling to main:', error)
+      alert('Failed to pool amount to main. Please try again.')
+    }
+  }
+
+  const handleEditQuotation = async (quotationId) => {
+    try {
+      const response = await pipelineService.getQuotationDetail(quotationId)
+      setSelectedQuotation(response)
+      setQuotationProducts(response.products || [])
+      setShowUpdateQuotationModal(true)
+    } catch (error) {
+      console.error('Error fetching quotation detail:', error)
+      alert('Failed to load quotation details. Please try again.')
+    }
+  }
+
+  const addQuotationProduct = () => {
+    const newProduct = {
+      id: Date.now(), // temporary ID for new products
+      product_name: '',
+      qty: 1,
+      unit: 'pcs',
+      price: 0,
+      ppn: 11,
+      discount: 0
+    }
+    setQuotationProducts(prev => [...prev, newProduct])
+  }
+
+  const removeQuotationProduct = (index) => {
+    setQuotationProducts(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const updateQuotationProduct = (index, field, value) => {
+    setQuotationProducts(prev => {
+      const updated = [...prev]
+      updated[index] = { ...updated[index], [field]: value }
+      return updated
+    })
+  }
+
+  const calculateRowTotal = (product) => {
+    const qty = parseFloat(product.qty) || 0
+    const price = parseFloat(product.price) || 0
+    const ppn = parseFloat(product.ppn) || 0
+    const discount = parseFloat(product.discount) || 0
+
+    const subtotal = qty * price
+    const ppnAmount = subtotal * (ppn / 100)
+    const totalWithPPN = subtotal + ppnAmount
+    const discountAmount = totalWithPPN * (discount / 100)
+    const total = totalWithPPN - discountAmount
+
+    return total
+  }
+
+  const calculateGrandTotal = () => {
+    return quotationProducts.reduce((total, product) => {
+      return total + calculateRowTotal(product)
+    }, 0)
+  }
+
+  const formatRupiah = (amount) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0
+    }).format(amount)
   }
 
   const handleFilterChange = (field, value) => {
@@ -1307,35 +1559,115 @@ export default function PipelinePage() {
                     <h2 className="text-xl font-semibold">Quotation</h2>
                     <Button 
                       className="bg-blue-600 hover:bg-blue-700 text-white"
-                      onClick={() => setShowQuotationModal(true)}
+                      onClick={() => {
+                        // Reset any existing state
+                        setShowUpdateQuotationModal(false)
+                        setSelectedQuotation(null)
+                        setQuotationProducts([])
+                        
+                        // Add default empty product
+                        addQuotationProduct()
+                        
+                        // Open create modal
+                        setShowCreateQuotationModal(true)
+                      }}
                     >
                       <Plus className="h-4 w-4 mr-2" />
                       Buat Quotation
                     </Button>
                   </div>
                   
-                  <div className="bg-gray-50 rounded-lg p-8 text-center">
-                    <div className="mb-4">
-                      <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
+                  {loadingQuotations ? (
+                    <div className="text-center py-8">
+                      <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                      <p className="mt-2 text-gray-600">Loading quotations...</p>
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Belum ada quotation</h3>
-                    <p className="text-gray-600 mb-4">Mulai buat quotation pertama untuk lead ini</p>
-                  </div>
+                  ) : quotations.length === 0 ? (
+                    <div className="bg-gray-50 rounded-lg p-8 text-center">
+                      <div className="mb-4">
+                        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Belum ada quotation</h3>
+                      <p className="text-gray-600 mb-4">Mulai buat quotation pertama untuk lead ini</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {quotations.map((quotation) => (
+                        <div key={quotation.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditQuotation(quotation.id)}
+                                className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                              >
+                                Q{quotation.id}
+                              </Button>
+                              <div>
+                                <p className="font-medium text-gray-900">{quotation.lead?.name || 'Unknown Lead'}</p>
+                                <p className="text-sm text-gray-500">Due: {new Date(quotation.due_date).toLocaleDateString()}</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-semibold text-lg text-green-600">
+                                {formatRupiah(quotation.amount || 0)}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                            <div className="text-sm text-gray-500">
+                              {quotation.products?.length || 0} product(s)
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open(`/crm2/quotation/invoice/${quotation.id}`, '_blank')}
+                                className="text-green-600 border-green-200 hover:bg-green-50"
+                              >
+                                Invoice PDF
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePoolToMain(quotation.id)}
+                                className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                              >
+                                Pull To Main
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteQuotation(quotation.id)}
+                                className="text-red-600 border-red-200 hover:bg-red-50"
+                              >
+                                Delete
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           </DrawerContent>
         </Drawer>
         
-        {/* Custom Quotation Modal */}
-        {showQuotationModal && (
+        {/* Create Quotation Modal */}
+        {showCreateQuotationModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {console.log('Rendering CREATE modal')}
             {/* Backdrop */}
             <div 
               className="absolute inset-0 bg-black opacity-20" 
-              onClick={() => setShowQuotationModal(false)}
+              onClick={() => setShowCreateQuotationModal(false)}
             />
             
             {/* Modal Content */}
@@ -1344,7 +1676,7 @@ export default function PipelinePage() {
               <div className="flex items-center justify-between p-6 border-b">
                 <h2 className="text-xl font-semibold">Buat Quotation Baru</h2>
                 <button
-                  onClick={() => setShowQuotationModal(false)}
+                  onClick={() => setShowCreateQuotationModal(false)}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1353,9 +1685,391 @@ export default function PipelinePage() {
                 </button>
               </div>
               
-              {/* Content */}
-              <div className="p-6 overflow-y-auto h-[calc(90vh-80px)]">
-                <QuotationModal selectedLead={selectedLead} />
+              {/* Body */}
+              <div className="flex-1 p-6 overflow-auto">
+                <form onSubmit={async (e) => {
+                  e.preventDefault()
+                  const formData = new FormData(e.target)
+                  
+                  // Add products data
+                  quotationProducts.forEach((product, index) => {
+                    formData.append(`product_name[${index}]`, product.product_name)
+                    formData.append(`qty[${index}]`, product.qty)
+                    formData.append(`unit[${index}]`, product.unit)
+                    formData.append(`price[${index}]`, product.price)
+                    formData.append(`ppn[${index}]`, product.ppn)
+                    formData.append(`discount[${index}]`, product.discount)
+                  })
+                  
+                  await handleCreateQuotation(formData)
+                }}>
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Due Date:
+                    </label>
+                    <input 
+                      type="date" 
+                      name="duedate" 
+                      defaultValue={new Date().toISOString().split('T')[0]}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-medium">Products</h3>
+                      <Button
+                        type="button"
+                        onClick={addQuotationProduct}
+                        className="bg-gray-600 hover:bg-gray-700 text-white"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Product
+                      </Button>
+                    </div>
+                    
+                    <div className="overflow-x-auto">
+                      <table className="w-full border border-gray-300">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-3 py-2 text-left text-sm font-medium text-gray-900 border">Product Name</th>
+                            <th className="px-3 py-2 text-left text-sm font-medium text-gray-900 border">Qty</th>
+                            <th className="px-3 py-2 text-left text-sm font-medium text-gray-900 border">Unit</th>
+                            <th className="px-3 py-2 text-left text-sm font-medium text-gray-900 border">Price</th>
+                            <th className="px-3 py-2 text-left text-sm font-medium text-gray-900 border">PPN(%)</th>
+                            <th className="px-3 py-2 text-left text-sm font-medium text-gray-900 border">Discount(%)</th>
+                            <th className="px-3 py-2 text-left text-sm font-medium text-gray-900 border">Total</th>
+                            <th className="px-3 py-2 text-left text-sm font-medium text-gray-900 border">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {quotationProducts.map((product, index) => (
+                            <tr key={index}>
+                              <td className="border p-2">
+                                <input
+                                  type="text"
+                                  value={product.product_name}
+                                  onChange={(e) => updateQuotationProduct(index, 'product_name', e.target.value)}
+                                  className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  placeholder="Product Name"
+                                />
+                              </td>
+                              <td className="border p-2">
+                                <input
+                                  type="number"
+                                  value={product.qty}
+                                  onChange={(e) => updateQuotationProduct(index, 'qty', e.target.value)}
+                                  className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  placeholder="Qty"
+                                />
+                              </td>
+                              <td className="border p-2">
+                                <input
+                                  type="text"
+                                  value={product.unit}
+                                  onChange={(e) => updateQuotationProduct(index, 'unit', e.target.value)}
+                                  className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  placeholder="Unit"
+                                />
+                              </td>
+                              <td className="border p-2">
+                                <input
+                                  type="number"
+                                  value={product.price}
+                                  onChange={(e) => updateQuotationProduct(index, 'price', e.target.value)}
+                                  className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  placeholder="Price"
+                                />
+                              </td>
+                              <td className="border p-2">
+                                <input
+                                  type="number"
+                                  value={product.ppn}
+                                  onChange={(e) => updateQuotationProduct(index, 'ppn', e.target.value)}
+                                  className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  placeholder="PPN"
+                                />
+                              </td>
+                              <td className="border p-2">
+                                <input
+                                  type="number"
+                                  value={product.discount}
+                                  onChange={(e) => updateQuotationProduct(index, 'discount', e.target.value)}
+                                  className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  placeholder="Discount"
+                                />
+                              </td>
+                              <td className="border p-2 text-right font-medium">
+                                {formatRupiah(calculateRowTotal(product))}
+                              </td>
+                              <td className="border p-2 text-center">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => removeQuotationProduct(index)}
+                                  className="text-red-600 border-red-200 hover:bg-red-50"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                          {quotationProducts.length === 0 && (
+                            <tr>
+                              <td colSpan={8} className="text-center py-8 text-gray-500">
+                                No products added yet. Click "Add Product" to start.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                        <tfoot>
+                          <tr className="bg-gray-50">
+                            <td colSpan={6} className="px-3 py-2 text-right font-semibold border">Grand Total:</td>
+                            <td className="px-3 py-2 text-right font-semibold border text-green-600">
+                              {formatRupiah(calculateGrandTotal())}
+                            </td>
+                            <td className="border"></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-6 border-t">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setShowCreateQuotationModal(false)
+                        setQuotationProducts([])
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      Save Quotation
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Update Quotation Modal */}
+        {showUpdateQuotationModal && selectedQuotation && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {console.log('Rendering UPDATE modal for quotation:', selectedQuotation.id)}
+            {/* Backdrop */}
+            <div 
+              className="absolute inset-0 bg-black opacity-20" 
+              onClick={() => {
+                setShowUpdateQuotationModal(false)
+                setSelectedQuotation(null)
+                setQuotationProducts([])
+              }}
+            />
+            
+            {/* Modal Content */}
+            <div className="relative bg-white rounded-lg shadow-xl w-[95vw] h-[90vh] overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b">
+                <h2 className="text-xl font-semibold">Update Quotation Q{selectedQuotation.id}</h2>
+                <button
+                  onClick={() => {
+                    setShowUpdateQuotationModal(false)
+                    setSelectedQuotation(null)
+                    setQuotationProducts([])
+                  }}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              {/* Body */}
+              <div className="flex-1 p-6 overflow-auto">
+                <form onSubmit={async (e) => {
+                  e.preventDefault()
+                  const formData = new FormData(e.target)
+                  
+                  // Add products data
+                  quotationProducts.forEach((product, index) => {
+                    formData.append(`product_name[${index}]`, product.product_name)
+                    formData.append(`qty[${index}]`, product.qty)
+                    formData.append(`unit[${index}]`, product.unit)
+                    formData.append(`price[${index}]`, product.price)
+                    formData.append(`ppn[${index}]`, product.ppn)
+                    formData.append(`discount[${index}]`, product.discount)
+                  })
+                  
+                  await handleUpdateQuotation(formData)
+                }}>
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Due Date:
+                    </label>
+                    <input 
+                      type="date" 
+                      name="duedate" 
+                      defaultValue={selectedQuotation.due_date}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-medium">Products</h3>
+                      <Button
+                        type="button"
+                        onClick={addQuotationProduct}
+                        className="bg-gray-600 hover:bg-gray-700 text-white"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Product
+                      </Button>
+                    </div>
+                    
+                    <div className="overflow-x-auto">
+                      <table className="w-full border border-gray-300">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-3 py-2 text-left text-sm font-medium text-gray-900 border">Product Name</th>
+                            <th className="px-3 py-2 text-left text-sm font-medium text-gray-900 border">Qty</th>
+                            <th className="px-3 py-2 text-left text-sm font-medium text-gray-900 border">Unit</th>
+                            <th className="px-3 py-2 text-left text-sm font-medium text-gray-900 border">Price</th>
+                            <th className="px-3 py-2 text-left text-sm font-medium text-gray-900 border">PPN(%)</th>
+                            <th className="px-3 py-2 text-left text-sm font-medium text-gray-900 border">Discount(%)</th>
+                            <th className="px-3 py-2 text-left text-sm font-medium text-gray-900 border">Total</th>
+                            <th className="px-3 py-2 text-left text-sm font-medium text-gray-900 border">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {quotationProducts.map((product, index) => (
+                            <tr key={index}>
+                              <td className="border p-2">
+                                <input
+                                  type="text"
+                                  value={product.product_name}
+                                  onChange={(e) => updateQuotationProduct(index, 'product_name', e.target.value)}
+                                  className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  placeholder="Product Name"
+                                />
+                              </td>
+                              <td className="border p-2">
+                                <input
+                                  type="number"
+                                  value={product.qty}
+                                  onChange={(e) => updateQuotationProduct(index, 'qty', e.target.value)}
+                                  className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  placeholder="Qty"
+                                />
+                              </td>
+                              <td className="border p-2">
+                                <input
+                                  type="text"
+                                  value={product.unit}
+                                  onChange={(e) => updateQuotationProduct(index, 'unit', e.target.value)}
+                                  className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  placeholder="Unit"
+                                />
+                              </td>
+                              <td className="border p-2">
+                                <input
+                                  type="number"
+                                  value={product.price}
+                                  onChange={(e) => updateQuotationProduct(index, 'price', e.target.value)}
+                                  className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  placeholder="Price"
+                                />
+                              </td>
+                              <td className="border p-2">
+                                <input
+                                  type="number"
+                                  value={product.ppn}
+                                  onChange={(e) => updateQuotationProduct(index, 'ppn', e.target.value)}
+                                  className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  placeholder="PPN"
+                                />
+                              </td>
+                              <td className="border p-2">
+                                <input
+                                  type="number"
+                                  value={product.discount}
+                                  onChange={(e) => updateQuotationProduct(index, 'discount', e.target.value)}
+                                  className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  placeholder="Discount"
+                                />
+                              </td>
+                              <td className="border p-2 text-right font-medium">
+                                {formatRupiah(calculateRowTotal(product))}
+                              </td>
+                              <td className="border p-2 text-center">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => removeQuotationProduct(index)}
+                                  className="text-red-600 border-red-200 hover:bg-red-50"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                          {quotationProducts.length === 0 && (
+                            <tr>
+                              <td colSpan={8} className="text-center py-8 text-gray-500">
+                                No products added yet. Click "Add Product" to start.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                        <tfoot>
+                          <tr className="bg-gray-50">
+                            <td colSpan={6} className="px-3 py-2 text-right font-semibold border">Grand Total:</td>
+                            <td className="px-3 py-2 text-right font-semibold border text-green-600">
+                              {formatRupiah(calculateGrandTotal())}
+                            </td>
+                            <td className="border"></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-6 border-t">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setShowUpdateQuotationModal(false)
+                        setSelectedQuotation(null)
+                        setQuotationProducts([])
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      Update Quotation
+                    </Button>
+                  </div>
+                </form>
               </div>
             </div>
           </div>

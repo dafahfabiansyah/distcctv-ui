@@ -151,6 +151,103 @@ class PipelineService {
       throw error;
     }
   }
+
+  /**
+   * Mengambil data quotations berdasarkan lead ID
+   * @param {string|number} leadId - ID lead
+   * @returns {Promise} Response dari API
+   */
+  /**
+   * Mengambil quotations untuk lead tertentu (menggunakan Sanctum API)
+   * @param {string|number} leadId - ID lead
+   * @returns {Promise} Response dari API
+   */
+  async getQuotations(leadId) {
+    try {
+      const response = await api.get(`/api/v2/crm/leads/${leadId}/quotations-react`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching quotations:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Buat quotation baru (menggunakan Sanctum API)
+   * @param {string|number} leadId - ID lead
+   * @param {Object} quotationData - Data quotation
+   * @returns {Promise} Response dari API
+   */
+  async createQuotation(leadId, quotationData) {
+    try {
+      const response = await api.post(`/api/v2/crm/leads/${leadId}/quotations`, quotationData);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating quotation:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update quotation (menggunakan Sanctum API)
+   * @param {string|number} quotationId - ID quotation
+   * @param {Object} quotationData - Data quotation yang diupdate
+   * @returns {Promise} Response dari API
+   */
+  async updateQuotation(quotationId, quotationData) {
+    try {
+      const response = await api.put(`/api/v2/crm/quotations/${quotationId}`, quotationData);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating quotation:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mengambil detail quotation berdasarkan ID (menggunakan Sanctum API)
+   * @param {string|number} quotationId - ID quotation
+   * @returns {Promise} Response dari API
+   */
+  async getQuotationDetail(quotationId) {
+    try {
+      const response = await api.get(`/api/v2/crm/quotations/${quotationId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching quotation detail:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Hapus quotation (menggunakan Sanctum API)
+   * @param {string|number} quotationId - ID quotation
+   * @returns {Promise} Response dari API
+   */
+  async deleteQuotation(quotationId) {
+    try {
+      const response = await api.delete(`/api/v2/crm/quotations/${quotationId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting quotation:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Pool quotation amount to main lead (menggunakan Sanctum API)
+   * @param {string|number} quotationId - ID quotation
+   * @returns {Promise} Response dari API
+   */
+  async poolToMain(quotationId) {
+    try {
+      const response = await api.post(`/api/v2/crm/quotations/${quotationId}/pool-to-main`);
+      return response.data;
+    } catch (error) {
+      console.error('Error pooling to main:', error);
+      throw error;
+    }
+  }
 }
 
 export default new PipelineService();

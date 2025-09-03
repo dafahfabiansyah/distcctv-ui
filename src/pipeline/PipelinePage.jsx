@@ -973,9 +973,6 @@ export default function PipelinePage() {
                       <option value="9">Operasional DISTCCTV</option>
                       <option value="16">Sukarma</option>
                     </select>
-                    {/* <p className="text-xs text-gray-500">
-                      Pilih nama untuk memberikan notifikasi dan assignment
-                    </p> */}
                   </div>
 
                   {/* Action Buttons */}
@@ -1008,28 +1005,28 @@ export default function PipelinePage() {
                           const assigneeSelect = document.querySelector('select[name="assignee"]')
                           const assignee = assigneeSelect?.value
 
-                          // Gabungkan notes menjadi satu string
-                          let noteText = ''
-                          if (requirements) {
-                            noteText += `Kebutuhan: ${requirements}\n\n`
-                          }
-                          if (obstacles) {
-                            noteText += `Kendala: ${obstacles}\n\n`
-                          }
-                          if (assignee) {
-                            noteText += `Tagged: ${assignee}\n\n`
-                          }
-                          noteText += `Last updated: ${new Date().toLocaleString()}`
-
-                          // Update lead dengan notes baru
-                          const updateData = {
-                            note: noteText
+                          // Siapkan payload sesuai format yang benar
+                          const updateData = {}
+                          
+                          // Format note sesuai kebutuhan API
+                          if (requirements.trim()) {
+                            updateData.note = requirements.trim()
                           }
                           
-                          // Jika ada assignee, tambahkan ke update data
-                          if (assignee && assignee !== 'none') {
-                            updateData.user_id = parseInt(assignee)
-                            updateData.tag = parseInt(assignee) // Untuk tagging
+                          // Format constraint_note untuk kendala
+                          if (obstacles.trim()) {
+                            updateData.constraint_note = obstacles.trim()
+                          }
+                          
+                          // Format tag sesuai kebutuhan API
+                          if (assignee && assignee !== '') {
+                            updateData.tag = parseInt(assignee)
+                          }
+
+                          // Validasi minimal ada satu data yang diisi
+                          if (Object.keys(updateData).length === 0) {
+                            alert('Please fill at least one field (requirements, obstacles, or tag)')
+                            return
                           }
 
                           console.log('Saving note for lead:', selectedLead.id, updateData)
@@ -1039,7 +1036,9 @@ export default function PipelinePage() {
                           // Update selectedLead dengan data baru
                           setSelectedLead(prev => ({
                             ...prev,
-                            notes: noteText
+                            note: requirements || prev.note,
+                            constraint_note: obstacles || prev.constraint_note,
+                            tag: assignee ? parseInt(assignee) : prev.tag
                           }))
 
                           alert('Note berhasil disimpan!')

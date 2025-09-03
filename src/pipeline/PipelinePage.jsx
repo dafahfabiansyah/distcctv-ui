@@ -968,15 +968,14 @@ export default function PipelinePage() {
                       className="w-full flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <option value="">Pilih nama untuk di-tag</option>
-                      <option value="1">Admin</option>
-                      <option value="2">Sales 1</option>
-                      <option value="3">Sales 2</option>
-                      <option value="4">Manager</option>
-                      {/* TODO: Load users from API */}
+                      <option value="8">Tria</option>
+                      <option value="17">Triawati Agustina</option>
+                      <option value="9">Operasional DISTCCTV</option>
+                      <option value="16">Sukarma</option>
                     </select>
-                    <p className="text-xs text-gray-500">
+                    {/* <p className="text-xs text-gray-500">
                       Pilih nama untuk memberikan notifikasi dan assignment
-                    </p>
+                    </p> */}
                   </div>
 
                   {/* Action Buttons */}
@@ -1291,7 +1290,7 @@ export default function PipelinePage() {
                                     <option value="">Select Responsible</option>
                                     <option value="kosong">Kosong</option>
                                     <option value="1">Admin</option>
-                                    <option value="2">Sales 1</option>
+                                    <option value="8">Sales 1</option>
                                     <option value="3">Sales 2</option>
                                   </select>
                                 </div>

@@ -20,6 +20,12 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    
+    // Don't set Content-Type if data is FormData - let browser set it with boundary
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type']
+    }
+    
     return config
   },
   (error) => {
@@ -188,7 +194,7 @@ class PipelineService {
   /**
    * Buat quotation baru (menggunakan Sanctum API)
    * @param {string|number} leadId - ID lead
-   * @param {Object} quotationData - Data quotation
+   * @param {FormData|Object} quotationData - Data quotation
    * @returns {Promise} Response dari API
    */
   async createQuotation(leadId, quotationData) {
@@ -204,11 +210,17 @@ class PipelineService {
   /**
    * Update quotation (menggunakan Sanctum API)
    * @param {string|number} quotationId - ID quotation
-   * @param {Object} quotationData - Data quotation yang diupdate
+   * @param {FormData|Object} quotationData - Data quotation yang diupdate
    * @returns {Promise} Response dari API
    */
   async updateQuotation(quotationId, quotationData) {
     try {
+      // For Laravel form-style update, we use POST with _method override
+      if (quotationData instanceof FormData) {
+        quotationData.append('_method', 'PUT')
+      }
+      
+      // Use POST method as Laravel route is configured for POST
       const response = await api.put(`/api/v2/crm/quotations/${quotationId}`, quotationData);
       return response.data;
     } catch (error) {

@@ -734,28 +734,56 @@ export default function PipelinePage() {
         return
       }
 
-      // Convert FormData to JSON object for Sanctum API
-      const data = {
-        duedate: quotationData.get('duedate'),
-        product_name: [],
-        qty: [],
-        unit: [],
-        price: [],
-        ppn: [],
-        discount: []
-      }
 
-      // Extract products data from FormData
+      // Convert FormData to match backend expectations with [] notation
+      const data = new FormData()
+      data.append('lead_id', String(selectedLead.id))
+      data.append('duedate', String(quotationData.get('duedate') || ''))
+
+      // Ensure we always send arrays, even if empty
+      const productNames = []
+      const quantities = []
+      const units = []
+      const prices = []
+      const ppns = []
+      const discounts = []
+
+      // Collect all product data
       quotationProducts.forEach((product, index) => {
-        data.product_name.push(product.product_name || '')
-        data.qty.push(Number(product.qty) || 0)
-        data.unit.push(product.unit || '')
-        data.price.push(Number(product.price) || 0)
-        data.ppn.push(Number(product.ppn) || 0)
-        data.discount.push(Number(product.discount) || 0)
+        productNames.push(String(product.product_name || ''))
+        quantities.push(String(product.qty || 0))
+        units.push(String(product.unit || ''))
+        prices.push(String(product.price || 0))
+        ppns.push(String(product.ppn || 0))
+        discounts.push(String(product.discount || 0))
       })
 
-      console.log('Creating quotation with data:', data)
+      // If no products, add empty arrays
+      if (productNames.length === 0) {
+        productNames.push('')
+        quantities.push('0')
+        units.push('')
+        prices.push('0')
+        ppns.push('0')
+        discounts.push('0')
+      }
+
+      // Add all products to FormData
+      productNames.forEach((name, index) => {
+        data.append('product_name[]', name)
+        data.append('qty[]', quantities[index])
+        data.append('unit[]', units[index])
+        data.append('price[]', prices[index])
+        data.append('ppn[]', ppns[index])
+        data.append('discount[]', discounts[index])
+      })
+
+      console.log('Creating quotation with FormData:')
+      console.log('Products data:', quotationProducts)
+      console.log('FormData entries:')
+      for (let pair of data.entries()) {
+        console.log(pair[0] + ': ' + pair[1])
+      }
 
       const response = await pipelineService.createQuotation(selectedLead.id, data)
       await fetchQuotations(selectedLead.id) // Reload quotations
@@ -793,28 +821,58 @@ export default function PipelinePage() {
         return
       }
 
-      // Convert FormData to JSON object for Sanctum API
-      const data = {
-        duedate: quotationData.get('duedate'),
-        product_name: [],
-        qty: [],
-        unit: [],
-        price: [],
-        ppn: [],
-        discount: []
-      }
 
-      // Extract products data from FormData
+      // Convert FormData to JSON object for Sanctum API
+      // Backend expects form data format with [] notation, not JSON arrays
+      const data = new FormData()
+      data.append('quotation_id', String(selectedQuotation.id))
+      data.append('lead_id', String(selectedLead.id))
+      data.append('duedate', String(quotationData.get('duedate') || ''))
+
+      // Ensure we always send arrays, even if empty
+      const productNames = []
+      const quantities = []
+      const units = []
+      const prices = []
+      const ppns = []
+      const discounts = []
+
+      // Collect all product data
       quotationProducts.forEach((product, index) => {
-        data.product_name.push(product.product_name || '')
-        data.qty.push(Number(product.qty) || 0)
-        data.unit.push(product.unit || '')
-        data.price.push(Number(product.price) || 0)
-        data.ppn.push(Number(product.ppn) || 0)
-        data.discount.push(Number(product.discount) || 0)
+        productNames.push(String(product.product_name || ''))
+        quantities.push(String(product.qty || 0))
+        units.push(String(product.unit || ''))
+        prices.push(String(product.price || 0))
+        ppns.push(String(product.ppn || 0))
+        discounts.push(String(product.discount || 0))
       })
 
-      console.log('Updating quotation with data:', data)
+      // If no products, add empty arrays
+      if (productNames.length === 0) {
+        productNames.push('')
+        quantities.push('0')
+        units.push('')
+        prices.push('0')
+        ppns.push('0')
+        discounts.push('0')
+      }
+
+      // Add all products to FormData
+      productNames.forEach((name, index) => {
+        data.append('product_name[]', name)
+        data.append('qty[]', quantities[index])
+        data.append('unit[]', units[index])
+        data.append('price[]', prices[index])
+        data.append('ppn[]', ppns[index])
+        data.append('discount[]', discounts[index])
+      })
+
+      console.log('Updating quotation with FormData:')
+      console.log('Products data:', quotationProducts)
+      console.log('FormData entries:')
+      for (let pair of data.entries()) {
+        console.log(pair[0] + ': ' + pair[1])
+      }
 
       const response = await pipelineService.updateQuotation(selectedQuotation.id, data)
       await fetchQuotations(selectedLead.id) // Reload quotations

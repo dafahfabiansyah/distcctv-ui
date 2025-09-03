@@ -1384,12 +1384,14 @@ export default function PipelinePage() {
                                       if (leadCity !== selectedLead.city) {
                                         updateData.city = leadCity
                                       }
-                                      // Tidak mengirim user_id dan value karena tidak diperlukan oleh endpoint
+                                      // Enable amount/value update - with proper comparison
+                                      const currentValue = selectedLead.value?.toString() || ''
+                                      if (leadAmount !== currentValue) {
+                                        updateData.value = parseFloat(leadAmount) || 0
+                                      }
+                                      // Tidak mengirim user_id karena tidak diperlukan oleh endpoint
                                       // if (responsible !== undefined && responsible !== selectedLead.responsible) {
                                       //   updateData.user_id = responsible === '' ? null : parseInt(responsible)
-                                      // }
-                                      // if (leadAmount !== selectedLead.value?.toString()) {
-                                      //   updateData.value = parseFloat(leadAmount) || 0
                                       // }
                                       if (automationReason !== selectedLead.automation_reason) {
                                         updateData.sales_assign_reason = automationReason

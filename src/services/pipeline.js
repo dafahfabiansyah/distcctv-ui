@@ -104,7 +104,7 @@ class PipelineService {
   }
 
   /**
-   * Update data lead lengkap (semua field)
+   * Update data lead lengkap (semua field) - menggunakan Sanctum API
    * @param {string|number} leadId - ID lead
    * @param {Object} leadData - Data lead yang akan diupdate
    * @returns {Promise} Response dari API
@@ -119,7 +119,7 @@ class PipelineService {
         }
       });
 
-      // const response = await api.post(`/crm2/lead/${leadId}/update`, formData, {
+      // Menggunakan endpoint Sanctum yang tidak memerlukan CSRF token
       const response = await api.put(`/api/v2/crm/lead/update/${leadId}`, formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'

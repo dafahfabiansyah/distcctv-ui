@@ -276,6 +276,36 @@ class PipelineService {
       throw error;
     }
   }
+
+  /**
+   * Mengambil data activities berdasarkan lead ID
+   * @param {string|number} leadId - ID lead
+   * @returns {Promise} Response dari API
+   */
+  async getActivities(leadId) {
+    try {
+      const response = await api.get(`/api/v2/crm/leads/${leadId}/activities`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mengambil AI Helper untuk lead tertentu
+   * @param {string|number} leadId - ID lead
+   * @returns {Promise} Response dari API
+   */
+  async getAiHelper(leadId) {
+    try {
+      const response = await api.get(`/api/v2/crm/leads/${leadId}/ai-helper`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching AI helper:', error);
+      throw error;
+    }
+  }
 }
 
 export default new PipelineService();

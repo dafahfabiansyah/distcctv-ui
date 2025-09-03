@@ -164,6 +164,19 @@ export default function PipelinePage() {
   const [emails, setEmails] = useState([])
   const [loadingEmails, setLoadingEmails] = useState(false)
 
+  // Activity states
+  const [activities, setActivities] = useState([])
+  const [loadingActivities, setLoadingActivities] = useState(false)
+  const [activityForm, setActivityForm] = useState({
+    tag: '',
+    comment: ''
+  })
+
+  // Help states
+  const [helpMessage, setHelpMessage] = useState('')
+  const [loadingHelp, setLoadingHelp] = useState(false)
+  const [helpError, setHelpError] = useState(null)
+
   // Function to get default date range (7 days back)
   const getDefaultDateRange = () => {
     const today = new Date()
@@ -470,6 +483,109 @@ export default function PipelinePage() {
     } else {
       console.warn('Email ID not found in any expected field:', email)
       alert('Cannot open email: ID not found')
+    }
+  }
+
+  // Activity functions
+  const fetchActivities = async (leadId) => {
+    if (!leadId) return
+    
+    try {
+      setLoadingActivities(true)
+      const response = await pipelineService.getActivities(leadId)
+      console.log('Activities API response:', response) // Debug log
+      
+      // Additional debug for activity structure
+      if (response.activities && response.activities.length > 0) {
+        console.log('First activity structure:', response.activities[0])
+      }
+      
+      setActivities(response.activities || [])
+    } catch (error) {
+      console.error('Error fetching activities:', error)
+      setActivities([])
+    } finally {
+      setLoadingActivities(false)
+    }
+  }
+
+  const handleActivityFormChange = (field, value) => {
+    setActivityForm(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const handleSaveComment = async () => {
+    if (!selectedLead?.id) return
+    
+    try {
+      console.log('Saving comment:', {
+        leadId: selectedLead.id,
+        comment: activityForm.comment,
+        tag: activityForm.tag
+      })
+      
+      // TODO: Call API to save comment
+      // await pipelineService.saveComment(selectedLead.id, activityForm)
+      
+      // Reset form
+      setActivityForm({ tag: '', comment: '' })
+      
+      // Refresh activities
+      fetchActivities(selectedLead.id)
+      
+      alert('Comment saved successfully!')
+    } catch (error) {
+      console.error('Error saving comment:', error)
+      alert('Failed to save comment')
+    }
+  }
+
+  const handleLogCall = async () => {
+    if (!selectedLead?.id) return
+    
+    try {
+      console.log('Logging call:', {
+        leadId: selectedLead.id,
+        comment: activityForm.comment,
+        tag: activityForm.tag
+      })
+      
+      // TODO: Call API to log call
+      // await pipelineService.logCall(selectedLead.id, activityForm)
+      
+      // Reset form
+      setActivityForm({ tag: '', comment: '' })
+      
+      // Refresh activities
+      fetchActivities(selectedLead.id)
+      
+      alert('Call logged successfully!')
+    } catch (error) {
+      console.error('Error logging call:', error)
+      alert('Failed to log call')
+    }
+  }
+
+  // Fetch AI Helper
+  const fetchAiHelper = async (leadId) => {
+    if (!leadId) return
+    
+    setLoadingHelp(true)
+    setHelpError(null)
+    
+    try {
+      const response = await pipelineService.getAiHelper(leadId)
+      console.log('AI Helper response:', response)
+      
+      setHelpMessage(response.message || 'No help message available')
+    } catch (error) {
+      console.error('Error fetching AI helper:', error)
+      setHelpError('Failed to load AI helper')
+      setHelpMessage('')
+    } finally {
+      setLoadingHelp(false)
     }
   }
 
@@ -902,7 +1018,12 @@ export default function PipelinePage() {
                   <Button 
                     variant={activeTab === 'help'} 
                     size="sm"
-                    onClick={() => setActiveTab('help')}
+                    onClick={() => {
+                      setActiveTab('help');
+                      if (selectedLead?.id) {
+                        fetchAiHelper(selectedLead.id);
+                      }
+                    }}
                     className="flex-1 bg-crm-primary hover:bg-crm-primary-hover text-white rounded-r-none"
                   >
                     Help
@@ -947,7 +1068,12 @@ export default function PipelinePage() {
                 <Button 
                   variant={activeTab === 'activity'} 
                   size="sm"
-                  onClick={() => setActiveTab('activity')}
+                  onClick={() => {
+                    setActiveTab('activity');
+                    if (selectedLead?.id) {
+                      fetchActivities(selectedLead.id);
+                    }
+                  }}
                   className="flex-1 bg-crm-primary hover:bg-crm-primary-hover text-white rounded-none"
                 >
                   Activity
@@ -965,9 +1091,45 @@ export default function PipelinePage() {
           
             <div className="flex-1 overflow-hidden">
               {activeTab === 'help' && (
-                 <div className="px-6 py-6">
-                  <h2 className="text-xl font-semibold mb-4">Help</h2>
-                  <p className="text-gray-600">Help integration will be implemented here.</p>
+                <div className="px-6 py-6">
+                  <h2 className="text-xl font-semibold mb-4">Automation Helper</h2>
+                  
+                  {loadingHelp ? (
+                    <div className="text-center py-8">
+                      <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                      <p className="mt-2 text-gray-600">Loading AI helper...</p>
+                    </div>
+                  ) : helpError ? (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <div className="flex items-center">
+                        <svg className="w-5 h-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p className="text-red-700">{helpError}</p>
+                      </div>
+                    </div>
+                  ) : helpMessage ? (
+                    <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+                      <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 rounded-t-lg">
+                        <h3 className="text-sm font-medium text-gray-900">Automation Helper</h3>
+                      </div>
+                      <div className="p-4">
+                        <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans leading-relaxed">
+{helpMessage}
+                        </pre>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 rounded-lg p-8 text-center">
+                      <div className="mb-4">
+                        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No help available</h3>
+                      <p className="text-gray-600">AI Helper will provide assistance when you select a lead</p>
+                    </div>
+                  )}
                 </div>
               )}
               
@@ -1742,8 +1904,166 @@ export default function PipelinePage() {
               
               {activeTab === 'activity' && (
                 <div className="px-6 py-6">
-                  <h2 className="text-xl font-semibold mb-4">Activity</h2>
-                  <p className="text-gray-600">Activity timeline will be implemented here.</p>
+                  {/* Activity Form */}
+                  <div className="mb-8 p-4 bg-gray-50 rounded-lg">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Add New Activity</h3>
+                    <form className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* @Tag Field */}
+                        <div>
+                          <label htmlFor="activity-tag" className="block text-sm font-medium text-gray-700 mb-1">
+                            @Tag
+                          </label>
+                          <select
+                            id="activity-tag"
+                            name="activity-tag"
+                            value={activityForm.tag}
+                            onChange={(e) => handleActivityFormChange('tag', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          >
+                            <option value="">Select person to tag</option>
+                            <option value="17">Triawati Agustina</option>
+                            <option value="16">Sukarma</option>
+                          </select>
+                        </div>
+                        
+                        {/* Empty div for spacing */}
+                        <div></div>
+                      </div>
+                      
+                      {/* Comment Field */}
+                      <div>
+                        <label htmlFor="activity-comment" className="block text-sm font-medium text-gray-700 mb-1">
+                          Comment
+                        </label>
+                        <textarea
+                          id="activity-comment"
+                          name="activity-comment"
+                          rows={3}
+                          placeholder="Write your activity comment here..."
+                          value={activityForm.comment}
+                          onChange={(e) => handleActivityFormChange('comment', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-vertical"
+                        />
+                      </div>
+                      
+                      {/* Action Buttons */}
+                      <div className="flex justify-end space-x-3 pt-4">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50"
+                          onClick={handleSaveComment}
+                          disabled={!activityForm.comment.trim()}
+                        >
+                          Simpan
+                        </Button>
+                        <Button
+                          type="button"
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white"
+                          onClick={handleLogCall}
+                          disabled={!activityForm.comment.trim()}
+                        >
+                          Log Call
+                        </Button>
+                      </div>
+                    </form>
+                  </div>
+
+                  <h2 className="text-xl font-semibold mb-4">Activity Timeline</h2>
+                  
+                  {loadingActivities ? (
+                    <div className="text-center py-8">
+                      <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                      <p className="mt-2 text-gray-600">Loading activities...</p>
+                    </div>
+                  ) : activities.length === 0 ? (
+                    <div className="bg-gray-50 rounded-lg p-8 text-center">
+                      <div className="mb-4">
+                        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">Belum ada aktivitas</h3>
+                      <p className="text-gray-600">Aktivitas untuk lead ini akan muncul di sini</p>
+                    </div>
+                  ) : (
+                    <div className="flow-root max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4">
+                      <ul className="-mb-8">
+                        {activities.map((activity, index) => (
+                          <li key={index}>
+                            <div className="relative pb-8">
+                              {index !== activities.length - 1 ? (
+                                <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true" />
+                              ) : null}
+                              <div className="relative flex space-x-3">
+                                <div>
+                                  {/* Activity icon based on type */}
+                                  <span className={`h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white ${
+                                    activity.activity_type === 'call' || activity.activity_type?.includes('call') ? 'bg-blue-500' :
+                                    activity.activity_type === 'email' || activity.activity_type?.includes('email') ? 'bg-green-500' :
+                                    activity.is_note || activity.activity_type === 'note' || activity.note ? 'bg-yellow-500' :
+                                    activity.activity_type === 'stage_change' || activity.activity_type?.includes('stage') ? 'bg-purple-500' :
+                                    'bg-gray-500'
+                                  }`}>
+                                    {(activity.activity_type === 'call' || activity.activity_type?.includes('call')) && (
+                                      <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                      </svg>
+                                    )}
+                                    {(activity.activity_type === 'email' || activity.activity_type?.includes('email')) && (
+                                      <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                      </svg>
+                                    )}
+                                    {(activity.is_note || activity.activity_type === 'note' || activity.note) && (
+                                      <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                      </svg>
+                                    )}
+                                    {(activity.activity_type === 'stage_change' || activity.activity_type?.includes('stage')) && (
+                                      <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                      </svg>
+                                    )}
+                                    {!['call', 'email', 'note', 'stage_change'].some(type => 
+                                      activity.activity_type?.includes(type) || 
+                                      (type === 'note' && (activity.is_note || activity.note))
+                                    ) && (
+                                      <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                      </svg>
+                                    )}
+                                  </span>
+                                </div>
+                                <div className="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-900">
+                                      {activity.data.note|| 'Unknown Activity'}
+                                    </p>
+                                   
+                                    {activity.data.tag_to && (
+                                      <p className="text-xs text-gray-500 mt-1">
+                                        Tagged: {typeof activity.data.tag_to === 'object' ? JSON.stringify(activity.tag_to) : activity.tag_to}
+                                      </p>
+                                    )}
+                                    {activity.user_id && (
+                                      <p className="text-xs text-gray-500 mt-1">
+                                        User ID: {activity.user_id}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div className="text-right text-sm whitespace-nowrap text-gray-500">
+                                    {activity.created_at ? new Date(activity.created_at).toLocaleString() : 'No Date'}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
               

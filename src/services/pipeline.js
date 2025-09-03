@@ -111,7 +111,20 @@ class PipelineService {
    */
   async updateLead(leadId, leadData) {
     try {
-      const response = await api.put(`/api/v2/crm/leads/${leadId}`, leadData);
+      // Convert object to URLSearchParams untuk format form-data
+      const formData = new URLSearchParams();
+      Object.keys(leadData).forEach(key => {
+        if (leadData[key] !== null && leadData[key] !== undefined) {
+          formData.append(key, leadData[key]);
+        }
+      });
+
+      // const response = await api.post(`/crm2/lead/${leadId}/update`, formData, {
+      const response = await api.put(`/api/v2/crm/lead/update/${leadId}`, formData, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      });
       return response.data;
     } catch (error) {
       console.error('Error updating lead:', error);

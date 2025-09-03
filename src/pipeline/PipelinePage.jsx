@@ -18,6 +18,22 @@ import ChatInterface from "@/components/ChatInterface"
 import pipelineService from "@/services/pipeline"
 
 
+const formatDate = (dateString) => {
+  if (!dateString) return 'Unknown'
+  
+  const date = new Date(dateString)
+  
+  // Format: "3 Sep 2025, 14:30"
+  return date.toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+
 // Lead Card Component dengan Drag
 function LeadCard({ lead, onLeadClick, onUpdateLead }) {
   const [{ isDragging }, drag] = useDrag({
@@ -51,12 +67,12 @@ function LeadCard({ lead, onLeadClick, onUpdateLead }) {
             <h4 className="font-medium text-black truncate">{lead.name}</h4>
             <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
               <Clock className="h-3 w-3" />
-              <span className="truncate">{lead.time}</span>
+              <span className="truncate">{formatDate(lead.created_at)}</span>
             </div>
-            <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
+            {/* <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
               <Mail className="h-3 w-3" />
               <span className="truncate">{lead.email}</span>
-            </div>
+            </div> */}
             <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
               <Phone className="h-3 w-3" />
               <span>{lead.phone}</span>
@@ -124,7 +140,7 @@ function StageColumn({ stage, leads, onLeadClick, onMoveLead, onUpdateLead }) {
 
 export default function PipelinePage() {
   const { pipelineId } = useParams()
-  const [activeTab, setActiveTab] = useState("leads")
+  const [activeTab, setActiveTab] = useState("whatsapp")
   const [leadsData, setLeadsData] = useState([])
   const [stages, setStages] = useState([])
   const [selectedLead, setSelectedLead] = useState(null)
@@ -1184,14 +1200,14 @@ export default function PipelinePage() {
                               </div>
                               <div>
                                 <label className="text-sm font-medium text-gray-500">Created</label>
-                                <p className="text-sm text-black mt-1">{selectedLead?.created_at || 'Unknown'}</p>
+                                <p className="text-sm text-black mt-1">{formatDate(selectedLead?.created_at)}</p>
                               </div>
                             </div>
                             
                             <div>
                               <label className="text-sm font-medium text-gray-500">Lead source</label>
                               <p className="text-sm text-black mt-1">{selectedLead?.source || 'Unknown'}</p>
-                              <p className="text-sm text-gray-500 mt-1">Last activity: {selectedLead?.lastActivity || 'Unknown'}</p>
+                              <p className="text-sm text-gray-500 mt-1">Last activity: {formatDate(selectedLead?.lastActivity)}</p>
                             </div>
                           </AccordionContent>
                         </AccordionItem>
@@ -1209,11 +1225,23 @@ export default function PipelinePage() {
                               <div className="grid grid-cols-2 gap-4">
                                 <div>
                                   <label className="text-sm font-medium text-gray-500">Name</label>
-                                  <p className="text-sm text-black mt-1">{selectedLead?.name || '-'}</p>
+                                  <input 
+                                    type="text"
+                                    name="lead_name"
+                                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Enter name..."
+                                    defaultValue={selectedLead?.name || ''}
+                                  />
                                 </div>
                                 <div>
                                   <label className="text-sm font-medium text-gray-500">Phone</label>
-                                  <p className="text-sm text-black mt-1">{selectedLead?.phone || '-'}</p>
+                                  <input 
+                                    type="text"
+                                    name="lead_phone"
+                                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Enter phone..."
+                                    defaultValue={selectedLead?.phone || ''}
+                                  />
                                 </div>
                                 <div>
                                   <label className="text-sm font-medium text-gray-500">Source</label>
@@ -1229,11 +1257,23 @@ export default function PipelinePage() {
                                 </div>
                                 <div>
                                   <label className="text-sm font-medium text-gray-500">Amount</label>
-                                  <p className="text-sm text-black mt-1">Rp {selectedLead?.value?.toLocaleString() || '0'}</p>
+                                  <input 
+                                    type="number"
+                                    name="lead_amount"
+                                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Enter amount..."
+                                    defaultValue={selectedLead?.value || ''}
+                                  />
                                 </div>
                                 <div className="col-span-2">
                                   <label className="text-sm font-medium text-gray-500">City</label>
-                                  <p className="text-sm text-black mt-1">{selectedLead?.city || '-'}</p>
+                                  <input 
+                                    type="text"
+                                    name="lead_city"
+                                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Enter city..."
+                                    defaultValue={selectedLead?.city || ''}
+                                  />
                                 </div>
                               </div>
 
@@ -1322,6 +1362,10 @@ export default function PipelinePage() {
 
                                     try {
                                       // Ambil data dari form
+                                      const leadName = document.querySelector('input[name="lead_name"]')?.value
+                                      const leadPhone = document.querySelector('input[name="lead_phone"]')?.value
+                                      const leadAmount = document.querySelector('input[name="lead_amount"]')?.value
+                                      const leadCity = document.querySelector('input[name="lead_city"]')?.value
                                       const responsible = document.querySelector('select[name="responsible"]')?.value
                                       const automationReason = document.querySelector('textarea[name="automation_reason"]')?.value
                                       const supervisorAdvice = document.querySelector('textarea[name="supervisor_advice"]')?.value
@@ -1330,10 +1374,23 @@ export default function PipelinePage() {
 
                                       const updateData = {}
                                       
-                                      // Update hanya field yang diubah
-                                      if (responsible !== undefined && responsible !== selectedLead.responsible) {
-                                        updateData.user_id = responsible === '' ? null : parseInt(responsible)
+                                      // Update hanya field yang diubah - hanya yang diperlukan untuk endpoint
+                                      if (leadName !== selectedLead.name) {
+                                        updateData.name = leadName
                                       }
+                                      if (leadPhone !== selectedLead.phone) {
+                                        updateData.phone = leadPhone
+                                      }
+                                      if (leadCity !== selectedLead.city) {
+                                        updateData.city = leadCity
+                                      }
+                                      // Tidak mengirim user_id dan value karena tidak diperlukan oleh endpoint
+                                      // if (responsible !== undefined && responsible !== selectedLead.responsible) {
+                                      //   updateData.user_id = responsible === '' ? null : parseInt(responsible)
+                                      // }
+                                      // if (leadAmount !== selectedLead.value?.toString()) {
+                                      //   updateData.value = parseFloat(leadAmount) || 0
+                                      // }
                                       if (automationReason !== selectedLead.automation_reason) {
                                         updateData.sales_assign_reason = automationReason
                                       }
@@ -1360,6 +1417,11 @@ export default function PipelinePage() {
                                       setSelectedLead(prev => ({
                                         ...prev,
                                         ...updateData,
+                                        name: leadName || prev.name,
+                                        phone: leadPhone || prev.phone,
+                                        city: leadCity || prev.city,
+                                        // Update field amount dan responsible hanya di local state, tidak dikirim ke API
+                                        value: parseFloat(leadAmount) || prev.value,
                                         responsible: responsible || prev.responsible,
                                         automation_reason: automationReason || prev.automation_reason,
                                         supervisor_advice: supervisorAdvice || prev.supervisor_advice,

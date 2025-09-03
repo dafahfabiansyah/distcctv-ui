@@ -1285,10 +1285,6 @@ export default function PipelinePage() {
                       <h2 className="text-xl font-semibold text-gray-900">{selectedLead?.name || 'No Name'}</h2>
                       <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
                         <div className="flex items-center gap-1">
-                          <Mail className="h-4 w-4" />
-                          {selectedLead?.email || 'No Email'}
-                        </div>
-                        <div className="flex items-center gap-1">
                           <Phone className="h-4 w-4" />
                           {selectedLead?.phone || 'No Phone'}
                         </div>
@@ -1398,7 +1394,7 @@ export default function PipelinePage() {
                               </div>
                               <div>
                                 <label className="text-sm font-medium text-gray-500">Value</label>
-                                <p className="text-sm text-black mt-1">${selectedLead?.value || 0}</p>
+                                <p className="text-sm text-black mt-1">Rp. {selectedLead?.value || 0}</p>
                               </div>
                               <div>
                                 <label className="text-sm font-medium text-gray-500">Priority</label>
@@ -1657,10 +1653,10 @@ export default function PipelinePage() {
                     {/* Chat Preview - Selalu muncul di samping accordion */}
                     <div className="flex-1 border-l pl-6">
                       <div className="h-full">
-                        <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+                        {/* <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
                           <MessageSquare className="h-5 w-5" />
                           Chat Preview
-                        </h3>
+                        </h3> */}
                         <ChatInterface lead={selectedLead} />
                       </div>
                     </div>

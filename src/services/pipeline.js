@@ -306,6 +306,21 @@ class PipelineService {
       throw error;
     }
   }
+
+  /**
+   * Mengambil data WhatsApp chats berdasarkan lead ID
+   * @param {string|number} leadId - ID lead
+   * @returns {Promise} Response dari API
+   */
+  async getChats(leadId) {
+    try {
+      const response = await api.get(`/api/v2/crm/leads/${leadId}/chats`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching chats:', error);
+      throw error;
+    }
+  }
 }
 
 export default new PipelineService();

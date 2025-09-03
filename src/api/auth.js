@@ -3,7 +3,6 @@ import axios from 'axios';
 // Configuration
 const API_CONFIG = {
   baseURL: import.meta.env.VITE_BASE_URL || 'http://127.0.0.1:8000',
-  timeout: 10000, // 10 seconds
   withCredentials: true, // Enable cookies for session authentication
   headers: {
     'Content-Type': 'application/json',

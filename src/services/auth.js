@@ -4,7 +4,6 @@ import axios from 'axios'
 // Configuration - menggunakan konfigurasi yang sama dengan api/auth.js
 const API_CONFIG = {
   baseURL: import.meta.env.VITE_BASE_URL || 'http://127.0.0.1:8000',
-  timeout: 10000, // 10 seconds
   headers: {
     'Content-Type': 'application/json',
   },

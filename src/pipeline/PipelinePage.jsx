@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Mail, Phone, Clock, Plus, MoreHorizontal, Eye, ArrowRight, GripVertical, Filter, MessageSquare } from "lucide-react"
+import { Phone, Clock, Plus, MoreHorizontal, Eye, GripVertical, Filter, MessageSquare } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ChatInterface from "@/components/ChatInterface"
 import pipelineService from "@/services/pipeline"
@@ -177,6 +177,16 @@ export default function PipelinePage() {
   const [loadingHelp, setLoadingHelp] = useState(false)
   const [helpError, setHelpError] = useState(null)
 
+  // Email form states
+  const [emailForm, setEmailForm] = useState({
+    to: '',
+    cc: '',
+    subject: '',
+    message: ''
+  })
+  const [emailAttachments, setEmailAttachments] = useState([])
+  const [sendingEmail, setSendingEmail] = useState(false)
+
   // Function to get default date range (7 days back)
   const getDefaultDateRange = () => {
     const today = new Date()
@@ -185,7 +195,7 @@ export default function PipelinePage() {
     
     return {
       from: sevenDaysAgo.toISOString().split('T')[0], // Format: YYYY-MM-DD
-      // to: today.toISOString().split('T')[0]
+      to: today.toISOString().split('T')[0]
     }
   }
 
@@ -335,6 +345,19 @@ export default function PipelinePage() {
       fetchLeads()
     }
   }, [filters.dateFrom, filters.dateTo, filters.sales, filters.search])
+
+  // Effect untuk auto-fill email form ketika tab create-email dibuka
+  useEffect(() => {
+    if (activeTab === 'create-email' && selectedLead) {
+      // Auto-fill recipient email if available
+      if (selectedLead.email) {
+        setEmailForm(prev => ({
+          ...prev,
+          to: selectedLead.email
+        }))
+      }
+    }
+  }, [activeTab, selectedLead])
 
   const handleLeadClick = (lead) => {
     setSelectedLead(lead)
@@ -587,6 +610,105 @@ export default function PipelinePage() {
     } finally {
       setLoadingHelp(false)
     }
+  }
+
+  // Email functions
+  const handleEmailFormChange = (field, value) => {
+    setEmailForm(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const handleFileUpload = (event) => {
+    const files = Array.from(event.target.files)
+    setEmailAttachments(files)
+  }
+
+  const handleSendEmail = async () => {
+    if (!selectedLead?.id) return
+    
+    // Validation
+    if (!emailForm.to || !emailForm.subject || !emailForm.message) {
+      alert('Please fill in all required fields (To, Subject, Message)')
+      return
+    }
+
+    setSendingEmail(true)
+    
+    try {
+      // Create FormData for file uploads
+      const formData = new FormData()
+      formData.append('lead_id', selectedLead.id)
+      formData.append('to', emailForm.to)
+      formData.append('cc', emailForm.cc)
+      formData.append('subject', emailForm.subject)
+      formData.append('message', emailForm.message)
+      
+      // Add attachments if any
+      emailAttachments.forEach((file, index) => {
+        formData.append(`attachment[]`, file)
+      })
+
+      // Use the same endpoint as the Laravel version
+      const token = localStorage.getItem('access_token')
+      const response = await fetch('/inbox/email/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          // Don't set Content-Type for FormData, let browser set it with boundary
+        },
+        body: formData
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+      console.log('Email sent successfully:', result)
+
+      // Reset form
+      setEmailForm({
+        to: '',
+        cc: '',
+        subject: '',
+        message: ''
+      })
+      setEmailAttachments([])
+      
+      // Reset file input
+      const fileInput = document.getElementById('file-upload')
+      if (fileInput) fileInput.value = ''
+
+      // Refresh emails list
+      fetchEmails(selectedLead.id)
+      
+      // Switch back to email list tab
+      setActiveTab('email')
+      
+      alert('Email sent successfully!')
+      
+    } catch (error) {
+      console.error('Error sending email:', error)
+      alert('Failed to send email. Please try again.')
+    } finally {
+      setSendingEmail(false)
+    }
+  }
+
+  const resetEmailForm = () => {
+    setEmailForm({
+      to: '',
+      cc: '',
+      subject: '',
+      message: ''
+    })
+    setEmailAttachments([])
+    
+    // Reset file input
+    const fileInput = document.getElementById('file-upload')
+    if (fileInput) fileInput.value = ''
   }
 
   const handleCreateQuotation = async (quotationData) => {
@@ -1761,7 +1883,7 @@ export default function PipelinePage() {
                   <div className="px-6 py-6">
                   <h2 className="text-xl font-semibold mb-6">Create Email</h2>
                   
-                  <form className="space-y-6">
+                  <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
                     {/* Kepada Field */}
                     <div className="space-y-2">
                       <label htmlFor="to" className="text-sm font-medium text-gray-700">
@@ -1772,6 +1894,8 @@ export default function PipelinePage() {
                         type="email"
                         placeholder="Masukkan alamat email penerima"
                         className="w-full"
+                        value={emailForm.to}
+                        onChange={(e) => handleEmailFormChange('to', e.target.value)}
                         required
                       />
                     </div>
@@ -1786,6 +1910,8 @@ export default function PipelinePage() {
                         type="email"
                         placeholder="Masukkan alamat email CC (opsional)"
                         className="w-full"
+                        value={emailForm.cc}
+                        onChange={(e) => handleEmailFormChange('cc', e.target.value)}
                       />
                     </div>
                   
@@ -1799,6 +1925,8 @@ export default function PipelinePage() {
                         type="text"
                         placeholder="Masukkan subjek email"
                         className="w-full"
+                        value={emailForm.subject}
+                        onChange={(e) => handleEmailFormChange('subject', e.target.value)}
                         required
                       />
                     </div>
@@ -1813,6 +1941,8 @@ export default function PipelinePage() {
                         rows={8}
                         placeholder="Tulis pesan email Anda di sini..."
                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
+                        value={emailForm.message}
+                        onChange={(e) => handleEmailFormChange('message', e.target.value)}
                         required
                       />
                     </div>
@@ -1828,10 +1958,8 @@ export default function PipelinePage() {
                           id="file-upload"
                           multiple
                           className="hidden"
-                          onChange={(e) => {
-                            // Handle file upload logic here
-                            console.log('Files selected:', e.target.files)
-                          }}
+                          onChange={handleFileUpload}
+                          accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.txt"
                         />
                         <label
                           htmlFor="file-upload"
@@ -1854,10 +1982,27 @@ export default function PipelinePage() {
                         </label>
                       </div>
                       
-                      {/* File List Preview (akan muncul setelah file dipilih) */}
-                      <div id="file-list" className="space-y-2 mt-3">
-                        {/* File items akan ditampilkan di sini setelah upload */}
-                      </div>
+                      {/* File List Preview */}
+                      {emailAttachments.length > 0 && (
+                        <div className="space-y-2 mt-3">
+                          <p className="text-sm font-medium text-gray-700">File terpilih:</p>
+                          {emailAttachments.map((file, index) => (
+                            <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                              <span className="text-sm text-gray-600">{file.name}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newFiles = emailAttachments.filter((_, i) => i !== index)
+                                  setEmailAttachments(newFiles)
+                                }}
+                                className="text-red-500 hover:text-red-700 text-sm"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   
                     {/* Action Buttons */}
@@ -1866,8 +2011,8 @@ export default function PipelinePage() {
                         type="button"
                         variant="outline"
                         onClick={() => {
-                          // Reset form logic
-                          document.querySelector('form').reset()
+                          resetEmailForm()
+                          setActiveTab('email')
                         }}
                       >
                         Batal
@@ -1876,22 +2021,19 @@ export default function PipelinePage() {
                         type="button"
                         variant="outline"
                         onClick={() => {
-                          // Save as draft logic
-                          console.log('Save as draft')
+                          // Save as draft logic - for future implementation
+                          console.log('Save as draft - not implemented yet')
                         }}
                       >
                         Simpan Draft
                       </Button>
                       <Button
-                        type="submit"
+                        type="button"
                         className="bg-blue-600 hover:bg-blue-700 text-white"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          // Send email logic
-                          console.log('Send email')
-                        }}
+                        onClick={handleSendEmail}
+                        disabled={sendingEmail || !emailForm.to || !emailForm.subject || !emailForm.message}
                       >
-                        Kirim Email
+                        {sendingEmail ? 'Mengirim...' : 'Kirim Email'}
                       </Button>
                     </div>
                   </form>
@@ -2038,11 +2180,11 @@ export default function PipelinePage() {
                                       {activity.data.note|| 'Unknown Activity'}
                                     </p>
                                    
-                                    {activity.data.tag_to && (
+                                    {/* {activity.data.tag_to && (
                                       <p className="text-xs text-gray-500 mt-1">
                                         Tagged: {typeof activity.data.tag_to === 'object' ? JSON.stringify(activity.tag_to) : activity.tag_to}
                                       </p>
-                                    )}
+                                    )} */}
                                     {activity.user_id && (
                                       <p className="text-xs text-gray-500 mt-1">
                                         User ID: {activity.user_id}

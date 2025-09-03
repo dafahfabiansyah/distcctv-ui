@@ -9,6 +9,7 @@ function ChatInterface({ lead }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [newMessage, setNewMessage] = useState('')
+  const [isLoggingCall, setIsLoggingCall] = useState(false)
   const messagesEndRef = useRef(null)
 
   // Fetch chats when lead changes
@@ -50,6 +51,27 @@ function ChatInterface({ lead }) {
       setChats([])
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Function to handle log call
+  const handleLogCall = async () => {
+    if (!lead?.id || isLoggingCall) return
+    
+    setIsLoggingCall(true)
+    
+    try {
+      const response = await pipelineService.logCall(lead.id)
+      console.log('Log call response:', response)
+      
+      // Optional: Show success message or update UI
+      // You could add a toast notification here
+      
+    } catch (error) {
+      console.error('Error logging call:', error)
+      // Optional: Show error message
+    } finally {
+      setIsLoggingCall(false)
     }
   }
 
@@ -155,8 +177,14 @@ function ChatInterface({ lead }) {
             <p className="text-sm text-gray-500">{lead?.phone}</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm">
-              <Phone className="h-4 w-4" />
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={handleLogCall}
+              disabled={isLoggingCall || !lead?.id}
+              title="Log Call"
+            >
+              <Phone className={`h-4 w-4 ${isLoggingCall ? 'animate-pulse' : ''}`} />
             </Button>
           </div>
         </div>

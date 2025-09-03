@@ -321,6 +321,21 @@ class PipelineService {
       throw error;
     }
   }
+
+  /**
+   * Log call untuk lead tertentu
+   * @param {string|number} leadId - ID lead
+   * @returns {Promise} Response dari API
+   */
+  async logCall(leadId) {
+    try {
+      const response = await api.post(`/api/v2/crm/lead/${leadId}/log-call`);
+      return response.data;
+    } catch (error) {
+      console.error('Error logging call:', error);
+      throw error;
+    }
+  }
 }
 
 export default new PipelineService();

@@ -261,6 +261,21 @@ class PipelineService {
       throw error;
     }
   }
+
+  /**
+   * Mengambil data emails berdasarkan lead ID
+   * @param {string|number} leadId - ID lead
+   * @returns {Promise} Response dari API
+   */
+  async getEmails(leadId) {
+    try {
+      const response = await api.get(`/api/v2/crm/leads/${leadId}/emails`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching emails:', error);
+      throw error;
+    }
+  }
 }
 
 export default new PipelineService();

@@ -16,6 +16,7 @@ import { Phone, Clock, Plus, MoreHorizontal, Eye, GripVertical, Filter, MessageS
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ChatInterface from "@/components/ChatInterface"
 import pipelineService from "@/services/pipeline"
+import { useBatchChatStatus, useLeadChatStatus } from "@/hooks/useChatStatus"
 import "./PipelinePage.css"
 
 
@@ -36,7 +37,7 @@ const formatDate = (dateString) => {
 
 
 // Lead Card Component dengan Drag
-function LeadCard({ lead, onLeadClick, onUpdateLead }) {
+function LeadCard({ lead, onLeadClick, onUpdateLead, batchChatStatus }) {
   const [{ isDragging }, drag] = useDrag({
     type: 'lead',
     item: { id: lead.id, lead },
@@ -45,34 +46,9 @@ function LeadCard({ lead, onLeadClick, onUpdateLead }) {
     }),
   })
 
-  const [chatStatus, setChatStatus] = useState(null)
-  const [latestChatMessage, setLatestChatMessage] = useState('')
-  const [loadingChatStatus, setLoadingChatStatus] = useState(false)
-
-  // Fetch chat status when component mounts or lead changes
-  useEffect(() => {
-    const fetchChatStatus = async () => {
-      if (!lead.phone) return
-      
-      setLoadingChatStatus(true)
-      try {
-        const leadTimestamp = Math.floor(new Date(lead.created_at).getTime() / 1000)
-        const response = await pipelineService.getLeadChatStatus(lead.phone, leadTimestamp)
-        setChatStatus(response)
-        
-        // Set latest chat message
-        if (response.latest_chat && response.latest_chat.body) {
-          setLatestChatMessage(response.latest_chat.body)
-        }
-      } catch (error) {
-        console.error('Error fetching chat status for lead:', lead.id, error)
-      } finally {
-        setLoadingChatStatus(false)
-      }
-    }
-
-    fetchChatStatus()
-  }, [lead.id, lead.phone, lead.created_at])
+  // Ambil chat status dari batch data (tidak perlu individual fetch lagi)
+  const chatStatus = batchChatStatus?.[lead.phone] || null
+  const latestChatMessage = chatStatus?.latest_chat?.body || ''
 
   const handleClick = (e) => {
     // Jangan trigger click jika sedang drag
@@ -211,7 +187,7 @@ function LeadCard({ lead, onLeadClick, onUpdateLead }) {
 }
 
 // Stage Column Component dengan Drop
-function StageColumn({ stage, leads, onLeadClick, onMoveLead, onUpdateLead }) {
+function StageColumn({ stage, leads, onLeadClick, onMoveLead, onUpdateLead, batchChatStatus }) {
   const [{ isOver }, drop] = useDrop({
     accept: 'lead',
     drop: (item) => {
@@ -248,6 +224,7 @@ function StageColumn({ stage, leads, onLeadClick, onMoveLead, onUpdateLead }) {
             lead={lead} 
             onLeadClick={onLeadClick}
             onUpdateLead={onUpdateLead}
+            batchChatStatus={batchChatStatus}
           />
         ))}
         
@@ -317,6 +294,16 @@ export default function PipelinePage() {
   })
   const [emailAttachments, setEmailAttachments] = useState([])
   const [sendingEmail, setSendingEmail] = useState(false)
+
+  // Batch Chat Status - fetch semua chat status sekaligus
+  const { data: batchChatStatus, isLoading: isLoadingChatStatus, error: chatStatusError } = useBatchChatStatus(leadsData)
+  
+  // Debug chat status
+  useEffect(() => {
+    if (batchChatStatus) {
+      console.log('📊 Batch Chat Status loaded for', Object.keys(batchChatStatus).length, 'phones')
+    }
+  }, [batchChatStatus])
 
   // Function to get default date range (7 days back)
   const getDefaultDateRange = () => {
@@ -1207,7 +1194,15 @@ export default function PipelinePage() {
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-semibold text-black">{leadsData.length} Leads</h1>
+            <div className="flex items-center gap-4">
+              <h1 className="text-2xl font-semibold text-black">{leadsData.length} Leads</h1>
+              {isLoadingChatStatus && (
+                <div className="flex items-center gap-2 text-blue-600">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  <span className="text-sm">Loading chat status...</span>
+                </div>
+              )}
+            </div>
             <Button className="bg-crm-primary hover:bg-crm-primary-hover text-white">
               <Plus className="h-4 w-4 mr-2" />
               Add Lead
@@ -1355,6 +1350,7 @@ export default function PipelinePage() {
                      onLeadClick={handleLeadClick}
                      onMoveLead={handleMoveLead}
                      onUpdateLead={handleUpdateLead}
+                     batchChatStatus={batchChatStatus}
                    />
                  </div>
                ))}

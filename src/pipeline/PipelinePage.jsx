@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router"
 import { DndProvider, useDrag, useDrop } from "react-dnd"
 import { HTML5Backend } from "react-dnd-html5-backend"
@@ -16,6 +16,7 @@ import { Phone, Clock, Plus, MoreHorizontal, Eye, GripVertical, Filter, MessageS
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ChatInterface from "@/components/ChatInterface"
 import pipelineService from "@/services/pipeline"
+import "./PipelinePage.css"
 
 
 const formatDate = (dateString) => {
@@ -44,6 +45,35 @@ function LeadCard({ lead, onLeadClick, onUpdateLead }) {
     }),
   })
 
+  const [chatStatus, setChatStatus] = useState(null)
+  const [latestChatMessage, setLatestChatMessage] = useState('')
+  const [loadingChatStatus, setLoadingChatStatus] = useState(false)
+
+  // Fetch chat status when component mounts or lead changes
+  useEffect(() => {
+    const fetchChatStatus = async () => {
+      if (!lead.phone) return
+      
+      setLoadingChatStatus(true)
+      try {
+        const leadTimestamp = Math.floor(new Date(lead.created_at).getTime() / 1000)
+        const response = await pipelineService.getLeadChatStatus(lead.phone, leadTimestamp)
+        setChatStatus(response)
+        
+        // Set latest chat message
+        if (response.latest_chat && response.latest_chat.body) {
+          setLatestChatMessage(response.latest_chat.body)
+        }
+      } catch (error) {
+        console.error('Error fetching chat status for lead:', lead.id, error)
+      } finally {
+        setLoadingChatStatus(false)
+      }
+    }
+
+    fetchChatStatus()
+  }, [lead.id, lead.phone, lead.created_at])
+
   const handleClick = (e) => {
     // Jangan trigger click jika sedang drag
     if (!isDragging) {
@@ -51,31 +81,127 @@ function LeadCard({ lead, onLeadClick, onUpdateLead }) {
     }
   }
 
+  // Helper untuk menentukan apakah lead ada di stage closing (11 atau 12)
+  const isDontCreateBadge = () => {
+    return lead.lead_on_stage && (lead.lead_on_stage.stage_id === 11 || lead.lead_on_stage.stage_id === 12)
+  }
+
+  // Helper untuk menentukan posisi Call Count badge
+  const getCallCountBadgePosition = () => {
+    // Check if Follow Up badge exists
+    const hasFollowUpBadge = chatStatus && chatStatus.latest_chat && chatStatus.latest_chat.need_follow_up === true && !isDontCreateBadge()
+    
+    if (hasFollowUpBadge) {
+      // If Follow Up exists, position Call Count right below it
+      return '28px' // 28px below Follow Up badge
+    } else {
+      // If no Follow Up, check for HOT badge
+      const hasHotBadge = chatStatus && chatStatus.chat_hot && chatStatus.chat_hot.intense === true && !isDontCreateBadge()
+      if (hasHotBadge) {
+        return '52px' // Position below HOT badge (which is at 24px + 28px)
+      } else {
+        return '0px' // Position at top if no other badges
+      }
+    }
+  }
+
+  // Helper untuk menentukan apakah HOT badge harus ditampilkan
+  const shouldShowHotBadge = () => {
+    const hasFollowUpBadge = chatStatus && chatStatus.latest_chat && chatStatus.latest_chat.need_follow_up === true && !isDontCreateBadge()
+    const hasHotBadge = chatStatus && chatStatus.chat_hot && chatStatus.chat_hot.intense === true && !isDontCreateBadge()
+    
+    // Jika ada Follow Up badge, jangan tampilkan HOT badge
+    return hasHotBadge && !hasFollowUpBadge
+  }
+
+  // Format Rupiah
+  const formatRupiah = (amount) => {
+    if (!amount || amount === 0) return ''
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0
+    }).format(amount)
+  }
+
   return (
     <Card
       ref={drag}
-      className={`cursor-pointer hover:shadow-md transition-all ${
+      className={`cursor-pointer hover:shadow-md transition-all relative ${
         isDragging ? 'opacity-50 rotate-2 shadow-lg' : ''
       }`}
     >
-      <CardContent className="p-4" onClick={handleClick}>
+      {/* Badge Container - positioned absolutely */}
+      <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none">
+        {/* No Quotation Badge */}
+        {lead.quotation && lead.quotation.length === 0 && lead.amount === 0 && !isDontCreateBadge() && (
+          <div className="absolute top-0 left-0 bg-yellow-500 text-white px-2 py-1 rounded-br text-xs font-bold">
+            NO QUOTE
+          </div>
+        )}
+
+        {/* Follow Up Badge */}
+        {chatStatus && chatStatus.latest_chat && chatStatus.latest_chat.need_follow_up === true && !isDontCreateBadge() && (
+          <div className="absolute top-0 right-0 bg-blue-500 text-white px-2 py-1 rounded-bl text-xs font-bold">
+            FOLLOW UP
+          </div>
+        )}
+
+        {/* HOT Badge - hanya tampil jika tidak ada Follow Up badge */}
+        {shouldShowHotBadge() && (
+          <div className="absolute top-6 right-0 bg-red-500 text-white px-2 py-1 rounded-bl text-xs font-bold">
+            HOT
+          </div>
+        )}
+
+        {/* Call Count Badge - positioned dynamically below other badges */}
+        {!isDontCreateBadge() && lead.call_count && lead.call_count > 0 && (
+          <div 
+            className="absolute right-0 bg-green-500 text-white px-2 py-1 rounded-bl text-xs font-bold flex items-center"
+            style={{ top: getCallCountBadgePosition() }}
+          >
+            <Phone className="h-3 w-3 mr-1" />
+            {lead.call_count}
+          </div>
+        )}
+      </div>
+
+      <CardContent className="p-4 pt-6" onClick={handleClick}>
         <div className="flex items-start gap-3">
           <div className="mt-1 text-gray-400 hover:text-gray-600 cursor-grab">
             <GripVertical className="h-4 w-4" />
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="font-medium text-black truncate">{lead.name}</h4>
-            <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
+            {/* Lead Info */}
+            <div className="flex justify-between items-start mb-2">
+              <h4 className={`font-medium truncate ${lead.name ? 'text-black' : 'text-red-500'}`}>
+                {lead.name || `No Name (${lead.source_name || 'Unknown'})`}
+              </h4>
+              <span className="text-sm text-blue-600 font-semibold ml-2">
+                {formatRupiah(lead.amount)}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1 text-sm text-gray-500 mb-2">
+              <Phone className="h-3 w-3" />
+              <span>{lead.phone || ''}</span>
+            </div>
+
+            {/* Latest Chat Message */}
+            {latestChatMessage && (
+              <div className="bg-red-50 border-2 border-red-200 p-2 rounded text-xs text-red-700 font-bold mb-2 max-h-15 overflow-hidden">
+                {latestChatMessage}
+              </div>
+            )}
+
+            <div className="flex items-center gap-1 text-sm text-gray-500 mt-2">
               <Clock className="h-3 w-3" />
               <span className="truncate">{formatDate(lead.created_at)}</span>
             </div>
-            {/* <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
-              <Mail className="h-3 w-3" />
-              <span className="truncate">{lead.email}</span>
-            </div> */}
-            <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
-              <Phone className="h-3 w-3" />
-              <span>{lead.phone}</span>
+
+            {/* Sales Info */}
+            <div className="text-xs text-blue-600 font-semibold mt-1">
+              {lead.user && lead.user.name}
             </div>
           </div>
         </div>
@@ -99,7 +225,7 @@ function StageColumn({ stage, leads, onLeadClick, onMoveLead, onUpdateLead }) {
   return (
     <div 
       ref={drop}
-      className={`bg-white rounded-lg p-4 border border-gray-200 shadow-sm min-h-[500px] transition-colors ${
+      className={`bg-white rounded-lg p-4 border border-gray-200 shadow-sm h-[750px] transition-colors ${
         isOver ? 'bg-blue-50 border-blue-200' : ''
       }`}
     >
@@ -114,8 +240,8 @@ function StageColumn({ stage, leads, onLeadClick, onMoveLead, onUpdateLead }) {
         </div>
       </div>
 
-      {/* Cards Area */}
-      <div className="space-y-3">
+      {/* Cards Area with fixed height and scrollable */}
+      <div className="h-[680px] overflow-y-auto pr-2 space-y-3 custom-scrollbar">
         {leads.map((lead) => (
           <LeadCard 
             key={lead.id} 
@@ -151,6 +277,11 @@ export default function PipelinePage() {
   const [accordionValue, setAccordionValue] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+
+  // Horizontal drag states
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStart, setDragStart] = useState({ x: 0, scrollLeft: 0 })
+  const pipelineContainerRef = React.useRef(null)
 
   // Quotation states
   const [quotations, setQuotations] = useState([])
@@ -1023,6 +1154,52 @@ export default function PipelinePage() {
     setFilters(prev => ({ ...prev, search: e.target.value }))
   }
 
+  // Horizontal drag handlers
+  const handleMouseDown = (e) => {
+    // Only start dragging on right mouse button
+    if (e.button !== 2) return
+    
+    setIsDragging(true)
+    setDragStart({
+      x: e.pageX,
+      scrollLeft: pipelineContainerRef.current?.scrollLeft || 0
+    })
+  }
+
+  const handleMouseMove = React.useCallback((e) => {
+    if (!isDragging || !pipelineContainerRef.current) return
+    
+    e.preventDefault()
+    const dragDistance = e.pageX - dragStart.x
+    pipelineContainerRef.current.scrollLeft = dragStart.scrollLeft - dragDistance
+  }, [isDragging, dragStart])
+
+  const handleMouseUp = React.useCallback(() => {
+    setIsDragging(false)
+  }, [])
+
+  const handleContextMenu = (e) => {
+    // Prevent context menu when right-clicking for drag
+    e.preventDefault()
+  }
+
+  // Add global mouse event listeners for dragging
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+      document.body.style.cursor = 'grabbing'
+    } else {
+      document.body.style.cursor = 'default'
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      document.body.style.cursor = 'default'
+    }
+  }, [isDragging, handleMouseMove, handleMouseUp])
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="flex-1 bg-white p-6">
@@ -1045,9 +1222,6 @@ export default function PipelinePage() {
               value={filters.search}
               onChange={handleSearchChange}
             />
-            <Button variant="outline" className="text-black bg-transparent">
-              All leads
-            </Button>
              <Button variant="outline" className="text-black bg-transparent">
               Export Report
             </Button>
@@ -1166,7 +1340,12 @@ export default function PipelinePage() {
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div 
+            ref={pipelineContainerRef}
+            className={`overflow-x-auto select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+            onMouseDown={handleMouseDown}
+            onContextMenu={handleContextMenu}
+          >
             <div className="flex gap-6 pb-4" style={{minWidth: `${stages.length * 300}px`}}>
                {stages.map((stage) => (
                  <div key={stage.id} className="flex-shrink-0" style={{width: '280px'}}>

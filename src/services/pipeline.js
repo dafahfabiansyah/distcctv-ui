@@ -348,6 +348,56 @@ class PipelineService {
       throw error;
     }
   }
+
+  /**
+   * Mengambil status chat untuk lead tertentu dari gateway
+   * @param {string} phone - Nomor telepon lead
+   * @param {number} leadTimestamp - Timestamp lead (dalam detik)
+   * @returns {Promise} Response dari API
+   */
+  async getLeadChatStatus(phone, leadTimestamp) {
+    try {
+      // Menggunakan gateway URL untuk chat status
+      const gatewayUrl = import.meta.env.VITE_GATEWAY_URL || 'http://127.0.0.1:8000';
+      const response = await axios.get(`${gatewayUrl}/inbox/chat-summary`, {
+        params: {
+          phone: phone,
+          leadTimestamp: leadTimestamp
+        },
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching lead chat status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mengambil chat hot status untuk lead tertentu dari gateway
+   * @param {string} phone - Nomor telepon lead
+   * @returns {Promise} Response dari API
+   */
+  async getChatHot(phone) {
+    try {
+      // Menggunakan gateway URL untuk chat hot status
+      const gatewayUrl = import.meta.env.VITE_GATEWAY_URL || 'http://127.0.0.1:8000';
+      const response = await axios.get(`${gatewayUrl}/inbox/chat-hot`, {
+        params: {
+          phone: phone
+        },
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching chat hot status:', error);
+      throw error;
+    }
+  }
 }
 
 export default new PipelineService();

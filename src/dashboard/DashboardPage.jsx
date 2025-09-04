@@ -1,12 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts"
+import { dashboardService } from "@/services/dashboard"
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -14,107 +16,73 @@ import {
   Download,
   BarChart3,
   PieChartIcon,
+  RefreshCw,
 } from "lucide-react"
 
-const chartData = {
-  salesChart: [
-    { month: "Jan", sales: 4000, leads: 2400 },
-    { month: "Feb", sales: 3000, leads: 1398 },
-    { month: "Mar", sales: 2000, leads: 9800 },
-    { month: "Apr", sales: 2780, leads: 3908 },
-    { month: "May", sales: 1890, leads: 4800 },
-    { month: "Jun", sales: 2390, leads: 3800 }
-  ],
+// Helper function to transform dashboard summary data
+const transformDashboardData = (summaryData) => {
+  if (!summaryData?.data) return null
 
-   pieData: [
-    { name: "John doe", value: 9999, color: "#00559a" }, // merah
-    { name: "John doe", value: 9999, color: "#ffb401" }, // hijau muda
-    { name: "John doe", value: 9999, color: "#005499" }, // hijau
-    { name: "John doe", value: 9999, color: "#22c55e" }, // biru
-    { name: "DISTCCTV AI", value: 9999, color: "#a855f7" } // ungu
-  ],
-  revenueData: [
-    { name: "John doe", value: 9999, color: "#00559a" }, // merah
-    { name: "John doe", value: 9999, color: "#ffb401" }, // hijau muda (dominan)
-    { name: "John doe", value: 9999, color: "#005499" }, // hijau
-    { name: "John doe", value: 9999, color: "#22c55e" }, // biru
-    { name: "DISTCCTV AI", value: 9999, color: "#a855f7" } // ungu
-  ],
-  // Data baru untuk perbandingan kedua pie chart
-  comparisonData: [
-    { 
-      name: "John doev", 
-      won: 321, 
-      inProgress: 42, 
-      lose: 46,
-      total: 409
-    },
-    { 
-      name: "John doey", 
-      won: 141, 
-      inProgress: 144, 
-      lose: 39,
-      total: 324
-    },
-    { 
-      name: "John doeyy", 
-      won: 300, 
-      inProgress: 61, 
-      lose: 42,
-      total: 403
-    },
-    { 
-      name: "John doeyyyy", 
-      won: 122, 
-      inProgress: 110, 
-      lose: 45,
-      total: 277
-    },
-    { 
-      name: "John doew", 
-      won: 139, 
-      inProgress: 9, 
-      lose: 27,
-      total: 175
-    }
-  ],
-  // Data baru untuk Employees Target
-  employeesTarget: [
-    { month: "Jan", target: 100, achieved: 85 },
-    { month: "Feb", target: 120, achieved: 110 },
-    { month: "Mar", target: 110, achieved: 95 },
-    { month: "Apr", target: 130, achieved: 125 },
-    { month: "May", target: 140, achieved: 135 },
-    { month: "Jun", target: 150, achieved: 145 }
-  ]
-}
+  const { leads, cardData, hotLeads, followUpLeads, totalLeads, totalCallCount } = summaryData.data
 
-const recentActivities = [
-  {
-    id: 1,
-    user: "John Doe",
-    action: "Created new lead",
-    target: "Acme Corp",
-    time: "2 minutes ago",
-    avatar: "/thoughtful-man.png"
-  },
-  {
-    id: 2,
-    user: "Jane Smith",
-    action: "Closed deal",
-    target: "Tech Solutions",
-    time: "15 minutes ago",
-    avatar: "/diverse-woman-portrait.png"
-  },
-  {
-    id: 3,
-    user: "Mike Johnson",
-    action: "Updated pipeline",
-    target: "Global Industries",
-    time: "1 hour ago",
-    avatar: "/thoughtful-man.png"
+  // Transform leads data for analytics
+  const stageDistribution = {}
+  const userDistribution = {}
+  const monthlyData = {}
+
+  leads?.forEach(lead => {
+    // Count by stage
+    const stageName = lead.lead_on_stage?.stage?.name || 'Unknown'
+    stageDistribution[stageName] = (stageDistribution[stageName] || 0) + 1
+
+    // Count by user
+    const userName = lead.user?.name || 'Unknown'
+    userDistribution[userName] = (userDistribution[userName] || 0) + 1
+
+    // Count by month
+    const createdMonth = new Date(lead.created_at).toLocaleDateString('en-US', { month: 'short' })
+    monthlyData[createdMonth] = (monthlyData[createdMonth] || 0) + 1
+  })
+
+  // Transform for charts
+  const salesChart = Object.entries(monthlyData).map(([month, count]) => ({
+    month,
+    sales: count,
+    leads: count
+  }))
+
+  const pieData = Object.entries(userDistribution).map(([name, value], index) => ({
+    name,
+    value,
+    color: ['#00559a', '#ffb401', '#005499', '#22c55e', '#a855f7'][index % 5]
+  }))
+
+  const comparisonData = Object.entries(stageDistribution).map(([name, total]) => ({
+    name: name.substring(0, 15), // Truncate long stage names
+    won: name.toLowerCase().includes('won') ? total : 0,
+    inProgress: name.toLowerCase().includes('waiting') || name.toLowerCase().includes('progress') ? total : 0,
+    lose: name.toLowerCase().includes('lose') || name.toLowerCase().includes('lost') ? total : 0,
+    total
+  }))
+
+  return {
+    salesChart: salesChart.length > 0 ? salesChart : [{ month: 'Sep', sales: totalLeads, leads: totalLeads }],
+    pieData: pieData.length > 0 ? pieData : [{ name: 'No Data', value: 1, color: '#gray' }],
+    revenueData: pieData.length > 0 ? pieData : [{ name: 'No Data', value: 1, color: '#gray' }],
+    comparisonData: comparisonData.length > 0 ? comparisonData : [{ name: 'Total', won: 0, inProgress: totalLeads, lose: 0, total: totalLeads }],
+    employeesTarget: [
+      { month: 'Current', target: totalLeads + 10, achieved: totalLeads }
+    ],
+    recentActivities: leads?.slice(0, 5).map(lead => ({
+      id: lead.id,
+      user: lead.user?.name || 'Unknown User',
+      action: 'Created new lead',
+      target: lead.name || lead.company || 'Unknown Lead',
+      time: new Date(lead.created_at).toLocaleString(),
+      avatar: '/thoughtful-man.png'
+    })) || []
   }
-]
+}
 
 // Metric Card Component
 function MetricCard({ metric }) {
@@ -152,7 +120,24 @@ function MetricCard({ metric }) {
 
 // Simple Bar Chart Component - Updated
 function SimpleBarChart({ data, title, dataKeys = { primary: 'sales', secondary: 'leads' }, labels = { primary: 'Sales', secondary: 'Leads' }, colors = { primary: 'bg-crm-stage-new', secondary: 'bg-crm-stage-open' } }) {
-  const maxValue = Math.max(...data.map(d => Math.max(d[dataKeys.primary], d[dataKeys.secondary])))
+  // Handle empty data
+  if (!data || data.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-black">{title}</h3>
+            <BarChart3 className="h-5 w-5 text-gray-400" />
+          </div>
+          <div className="flex items-center justify-center h-32 text-gray-500">
+            No data available
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const maxValue = Math.max(...data.map(d => Math.max(d[dataKeys.primary] || 0, d[dataKeys.secondary] || 0)))
   
   return (
     <Card>
@@ -165,9 +150,9 @@ function SimpleBarChart({ data, title, dataKeys = { primary: 'sales', secondary:
           {data.map((item, index) => (
             <div key={index} className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">{item.month}</span>
+                <span className="text-gray-600">{item.month || item.name || `Item ${index + 1}`}</span>
                 <div className="flex gap-4">
-                  <span className="text-gray-600">{labels.primary}: {item[dataKeys.primary]}</span>
+                  <span className="text-gray-600">{labels.primary}: {item[dataKeys.primary] || 0}</span>
                   {/* <span className="text-gray-600">{labels.secondary}: {item[dataKeys.secondary]}</span> */}
                 </div>
               </div>
@@ -175,7 +160,7 @@ function SimpleBarChart({ data, title, dataKeys = { primary: 'sales', secondary:
                 <div className="flex-1 bg-gray-200 rounded-full h-2">
                   <div 
                     className={`${colors.primary} h-2 rounded-full transition-all`}
-                    style={{ width: `${(item[dataKeys.primary] / maxValue) * 100}%` }}
+                    style={{ width: `${maxValue > 0 ? ((item[dataKeys.primary] || 0) / maxValue) * 100 : 0}%` }}
                   ></div>
                 </div>
                 {/* <div className="flex-1 bg-gray-200 rounded-full h-2">
@@ -237,6 +222,76 @@ export default function DashboardPage() {
     status: ''
   })
 
+  // Fetch only dashboard summary data - this contains everything we need
+  const { 
+    data: dashboardSummaryData, 
+    isLoading,
+    error: dashboardError,
+    refetch: refetchDashboard
+  } = useQuery({
+    queryKey: ['dashboard-summary'],
+    queryFn: dashboardService.getDashboardSummary,
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
+  })
+
+  // Transform dashboard summary data for charts
+  const transformedData = transformDashboardData(dashboardSummaryData)
+
+  // Create metrics from dashboard summary data
+  const dashboardMetrics = dashboardSummaryData?.data ? [
+    {
+      id: 1,
+      title: "Total Leads Today",
+      value: dashboardSummaryData.data.cardData?.leadCountToday?.toString() || "0",
+      change: "+12%", // You can calculate this from historical data
+      trend: "up",
+      icon: TrendingUp,
+      color: "bg-blue-500"
+    },
+    {
+      id: 2,
+      title: "Lead Value Won",
+      value: dashboardSummaryData.data.cardData?.leadValueWon || "Rp 0",
+      change: "+8%",
+      trend: "up",
+      icon: TrendingUp,
+      color: "bg-green-500"
+    },
+    {
+      id: 3,
+      title: "Lead Value Opportunity",
+      value: dashboardSummaryData.data.cardData?.leadValueOpportunity || "Rp 0",
+      change: "+15%",
+      trend: "up",
+      icon: TrendingUp,
+      color: "bg-orange-500"
+    },
+    {
+      id: 4,
+      title: "Total Call Count",
+      value: dashboardSummaryData.data.totalCallCount?.toString() || "0",
+      change: "+5%",
+      trend: "up",
+      icon: TrendingUp,
+      color: "bg-purple-500"
+    }
+  ] : []
+
+  const hasError = dashboardError
+
+  const handleRefreshData = () => {
+    refetchDashboard()
+  }
+
+  // Debug logging
+  useEffect(() => {
+    if (dashboardSummaryData) {
+      console.log('Dashboard Summary Data:', dashboardSummaryData)
+      console.log('Transformed Data:', transformedData)
+    }
+  }, [dashboardSummaryData, transformedData])
+
   const handleFilterChange = (field, value) => {
     setFilters(prev => ({
       ...prev,
@@ -257,6 +312,33 @@ export default function DashboardPage() {
     })
   }
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex-1 bg-white p-6">
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-crm-primary"></div>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state
+  if (hasError) {
+    return (
+      <div className="flex-1 bg-white p-6">
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">Error loading dashboard data</p>
+            <Button onClick={handleRefreshData} variant="outline">
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex-1 bg-white p-6">
       {/* Header */}
@@ -264,6 +346,15 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-semibold text-black">Dashboard Overview</h1>
           <div className="flex items-center gap-3">
+            <Button 
+              variant="outline" 
+              className="text-gray-600 bg-transparent"
+              onClick={handleRefreshData}
+              disabled={isLoading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
             <Button variant="outline" className="text-black bg-transparent">
               <Download className="h-4 w-4 mr-2" />
               Export Report
@@ -375,20 +466,20 @@ export default function DashboardPage() {
       {/* Bento Grid Layout */}
       <div className="grid grid-cols-12 gap-6">
         {/* Metrics Cards - Top Row */}
-        {/* <div className="col-span-12">
+        <div className="col-span-12">
           <div className="grid grid-cols-4 gap-6 mb-6">
             {dashboardMetrics.map((metric) => (
               <MetricCard key={metric.id} metric={metric} />
             ))}
           </div>
-        </div> */}
+        </div>
 
         {/* Main Charts Section - Bento Style */}
         <div className="col-span-8 grid grid-cols-2 gap-6">
           {/* Bar Chart - Takes 2 columns */}
           <div className="col-span-2">
             <SimpleBarChart 
-              data={chartData.salesChart} 
+              data={transformedData?.salesChart || []} 
               title="Analytics Overview"
             />
           </div>
@@ -396,22 +487,22 @@ export default function DashboardPage() {
           {/* Two Pie Charts Side by Side */}
           <div className="col-span-1">
             <RechartsPieChart 
-              data={chartData.pieData} 
-              title="Total Won per Sales"
+              data={transformedData?.pieData || []} 
+              title="Leads per Sales User"
             />
           </div>
           <div className="col-span-1">
             <RechartsPieChart 
-              data={chartData.revenueData} 
-              title="Total Lose per Sales"
+              data={transformedData?.revenueData || []} 
+              title="Lead Distribution"
             />
           </div>
           
           {/* New Comparison Bar Chart - Takes 2 columns */}
           <div className="col-span-2">
             <RechartsBarChart 
-              data={chartData.comparisonData} 
-              title="Won vs Lose Sales Comparison"
+              data={transformedData?.comparisonData || []} 
+              title="Lead Status by Stage"
             />
           </div>
         </div>
@@ -419,28 +510,17 @@ export default function DashboardPage() {
         {/* Right Sidebar - Quick Actions */}
         <div className="col-span-4">
            <SimpleBarChart 
-            data={chartData.employeesTarget} 
-            title="Employees Target"
+            data={transformedData?.employeesTarget || []} 
+            title="Lead Progress"
             dataKeys={{ primary: 'target', secondary: 'achieved' }}
-            labels={{ primary: 'Target', secondary: 'Achieved' }}
+            labels={{ primary: 'Target', secondary: 'Current' }}
             colors={{ primary: 'bg-crm-stage-new', secondary: 'bg-crm-stage-open' }}
           />
         </div>
 
-        {/* Right Sidebar - Employees Target Chart */}
-        {/* <div className="col-span-4">
-          <SimpleBarChart 
-            data={chartData.employeesTarget} 
-            title="Employees Target"
-            dataKeys={{ primary: 'target', secondary: 'achieved' }}
-            labels={{ primary: 'Target', secondary: 'Achieved' }}
-            colors={{ primary: 'bg-crm-stage-new', secondary: 'bg-crm-stage-open' }}
-          />
-        </div> */}
-
         {/* Bottom Section - Recent Activities */}
         <div className="col-span-12">
-          <RecentActivities activities={recentActivities} />
+          <RecentActivities activities={transformedData?.recentActivities || []} />
         </div>
       </div>
     </div>
@@ -458,7 +538,7 @@ function RechartsPieChart({ data, title }) {
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
           <p className="font-medium text-gray-900">{data.name}</p>
           <p className="text-sm text-gray-600">
-            Value: <span className="font-medium">Rp {data.value.toLocaleString('id-ID')}</span>
+            Count: <span className="font-medium">{data.value}</span>
           </p>
           <p className="text-sm text-gray-600">
             Percentage: <span className="font-medium">{((data.value / data.payload.total) * 100).toFixed(1)}%</span>
@@ -480,7 +560,7 @@ function RechartsPieChart({ data, title }) {
             />
             <span className="text-gray-700">{entry.value}</span>
             <span className="text-gray-500 ml-auto">
-              Rp {data[index]?.value.toLocaleString('id-ID')}
+              {data[index]?.value}
             </span>
           </div>
         ))}

@@ -1,23 +1,25 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+// import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts"
 import { dashboardService } from "@/services/dashboard"
 import { 
-  TrendingUp, 
+
+  Filter, 
+  Settings,
+  DollarSign,
+  TrendingUp,
   TrendingDown, 
-  Filter,
   Download,
   BarChart3,
   PieChartIcon,
   RefreshCw,
-  Settings,
   Plus,
   Trash2,
   Save
@@ -33,6 +35,9 @@ const transformDashboardData = (summaryData) => {
   const stageDistribution = {}
   const userDistribution = {}
   const monthlyData = {}
+  const wonLoseByUser = {}
+  const dailyClosing = {}
+  const dailyClosingValue = {}
 
   leads?.forEach(lead => {
     // Count by stage
@@ -46,6 +51,48 @@ const transformDashboardData = (summaryData) => {
     // Count by month
     const createdMonth = new Date(lead.created_at).toLocaleDateString('en-US', { month: 'short' })
     monthlyData[createdMonth] = (monthlyData[createdMonth] || 0) + 1
+
+    // Won vs Lose per sales user
+    if (!wonLoseByUser[userName]) {
+      wonLoseByUser[userName] = { won: 0, lose: 0, total: 0 }
+    }
+    wonLoseByUser[userName].total += 1
+    
+    if (stageName.toLowerCase().includes('won') || stageName.toLowerCase().includes('deal')) {
+      wonLoseByUser[userName].won += 1
+    } else if (stageName.toLowerCase().includes('lose') || stageName.toLowerCase().includes('lost')) {
+      wonLoseByUser[userName].lose += 1
+    }
+
+    // Daily closing data (untuk leads yang closed)
+    if (stageName.toLowerCase().includes('won') || stageName.toLowerCase().includes('lose')) {
+      const closingDate = new Date(lead.updated_at || lead.created_at).toLocaleDateString('en-CA')
+      
+      // Count of closing per day
+      if (!dailyClosing[closingDate]) {
+        dailyClosing[closingDate] = { won: 0, lose: 0, total: 0 }
+      }
+      dailyClosing[closingDate].total += 1
+      
+      if (stageName.toLowerCase().includes('won')) {
+        dailyClosing[closingDate].won += 1
+      } else {
+        dailyClosing[closingDate].lose += 1
+      }
+
+      // Value of closing per day (estimate based on lead value or use default)
+      const leadValue = lead.value || lead.estimated_value || 1000000 // Default 1M
+      if (!dailyClosingValue[closingDate]) {
+        dailyClosingValue[closingDate] = { wonValue: 0, loseValue: 0, totalValue: 0 }
+      }
+      dailyClosingValue[closingDate].totalValue += leadValue
+      
+      if (stageName.toLowerCase().includes('won')) {
+        dailyClosingValue[closingDate].wonValue += leadValue
+      } else {
+        dailyClosingValue[closingDate].loseValue += leadValue
+      }
+    }
   })
 
   // Transform for charts
@@ -69,11 +116,44 @@ const transformDashboardData = (summaryData) => {
     total
   }))
 
+  // Won vs Lose per Sales User
+  const wonLoseData = Object.entries(wonLoseByUser).map(([name, data]) => ({
+    name: name.substring(0, 20),
+    won: data.won,
+    lose: data.lose,
+    total: data.total
+  }))
+
+  // Daily closing leads (last 7 days)
+  const dailyClosingData = Object.entries(dailyClosing)
+    .sort(([a], [b]) => new Date(a) - new Date(b))
+    .slice(-7)
+    .map(([date, data]) => ({
+      date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      won: data.won,
+      lose: data.lose,
+      total: data.total
+    }))
+
+  // Daily closing value (last 7 days)
+  const dailyClosingValueData = Object.entries(dailyClosingValue)
+    .sort(([a], [b]) => new Date(a) - new Date(b))
+    .slice(-7)
+    .map(([date, data]) => ({
+      date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      wonValue: data.wonValue,
+      loseValue: data.loseValue,
+      totalValue: data.totalValue
+    }))
+
   return {
     salesChart: salesChart.length > 0 ? salesChart : [{ month: 'Sep', sales: totalLeads, leads: totalLeads }],
     pieData: pieData.length > 0 ? pieData : [{ name: 'No Data', value: 1, color: '#gray' }],
     revenueData: pieData.length > 0 ? pieData : [{ name: 'No Data', value: 1, color: '#gray' }],
     comparisonData: comparisonData.length > 0 ? comparisonData : [{ name: 'Total', won: 0, inProgress: totalLeads, lose: 0, total: totalLeads }],
+    wonLoseData: wonLoseData.length > 0 ? wonLoseData : [{ name: 'No Data', won: 0, lose: 0, total: 1 }],
+    dailyClosingData: dailyClosingData.length > 0 ? dailyClosingData : [{ date: 'Today', won: 0, lose: 0, total: 0 }],
+    dailyClosingValueData: dailyClosingValueData.length > 0 ? dailyClosingValueData : [{ date: 'Today', wonValue: 0, loseValue: 0, totalValue: 0 }],
     employeesTarget: [
       { month: 'Current', target: totalLeads + 10, achieved: totalLeads }
     ],
@@ -1330,6 +1410,27 @@ export default function DashboardPage() {
             data={transformedData?.comparisonData || []} 
             title="Lead Status by Stage"
           />
+
+          {/* New Charts Section - 3 charts in a row */}
+          <div className="grid grid-cols-3 gap-6">
+            {/* Won vs Lose per Sales */}
+            <WonLoseChart
+              data={transformedData?.wonLoseData || []}
+              title="Won vs Lost per Sales"
+            />
+            
+            {/* Daily Closing Count */}
+            <DailyClosingChart
+              data={transformedData?.dailyClosingData || []}
+              title="Daily Closing Leads"
+            />
+            
+            {/* Daily Closing Value */}
+            <DailyClosingValueChart
+              data={transformedData?.dailyClosingValueData || []}
+              title="Daily Closing Value"
+            />
+          </div>
         </div>
 
         {/* Right Sidebar - Sales Target Chart & Achievement */}
@@ -1451,6 +1552,219 @@ function RechartsPieChart({ data, title }) {
                 height={legendHeight}
               />
             </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// Won vs Lose per Sales User Chart
+function WonLoseChart({ data, title }) {
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      const total = payload.reduce((sum, entry) => sum + entry.value, 0)
+      return (
+        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+          <p className="font-medium text-gray-900">{label}</p>
+          <p className="text-sm text-gray-600">Total: <span className="font-medium">{total}</span></p>
+          {payload.reverse().map((entry, index) => (
+            <p key={index} className="text-sm text-gray-600">
+              {entry.dataKey === 'won' ? 'Won' : 'Lost'}: 
+              <span className="font-medium ml-1" style={{ color: entry.color }}>
+                {entry.value}
+              </span>
+            </p>
+          ))}
+        </div>
+      )
+    }
+    return null
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-semibold text-black">{title}</h3>
+          <BarChart3 className="h-4 w-4 text-gray-400" />
+        </div>
+        <div className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis 
+                dataKey="name" 
+                angle={-45}
+                textAnchor="end"
+                height={80}
+                fontSize={11}
+                stroke="#666"
+              />
+              <YAxis stroke="#666" fontSize={11} />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend />
+              <Bar 
+                dataKey="won" 
+                fill="#22c55e" 
+                name="Won"
+                radius={[2, 2, 0, 0]}
+              />
+              <Bar 
+                dataKey="lose" 
+                fill="#ef4444" 
+                name="Lost"
+                radius={[2, 2, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// Daily Closing Count Chart
+function DailyClosingChart({ data, title }) {
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+          <p className="font-medium text-gray-900">{label}</p>
+          {payload.reverse().map((entry, index) => (
+            <p key={index} className="text-sm text-gray-600">
+              {entry.dataKey === 'won' ? 'Won' : entry.dataKey === 'lose' ? 'Lost' : 'Total'}: 
+              <span className="font-medium ml-1" style={{ color: entry.color }}>
+                {entry.value}
+              </span>
+            </p>
+          ))}
+        </div>
+      )
+    }
+    return null
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-semibold text-black">{title}</h3>
+          <BarChart3 className="h-4 w-4 text-gray-400" />
+        </div>
+        <div className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis 
+                dataKey="date" 
+                fontSize={11}
+                stroke="#666"
+                angle={-45}
+                textAnchor="end"
+                height={60}
+              />
+              <YAxis stroke="#666" fontSize={11} />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend />
+              <Bar 
+                dataKey="won" 
+                fill="#22c55e" 
+                name="Won"
+                radius={[2, 2, 0, 0]}
+              />
+              <Bar 
+                dataKey="lose" 
+                fill="#ef4444" 
+                name="Lost"
+                radius={[2, 2, 0, 0]}
+              />
+              <Bar 
+                dataKey="total" 
+                fill="#3b82f6" 
+                name="Total"
+                radius={[2, 2, 0, 0]}
+                fillOpacity={0.7}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// Daily Closing Value Chart
+function DailyClosingValueChart({ data, title }) {
+  const formatValue = (value) => {
+    if (value >= 1000000000) {
+      return `${(value / 1000000000).toFixed(1)}B`
+    } else if (value >= 1000000) {
+      return `${(value / 1000000).toFixed(1)}M`
+    } else if (value >= 1000) {
+      return `${(value / 1000).toFixed(1)}K`
+    }
+    return value.toString()
+  }
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+          <p className="font-medium text-gray-900">{label}</p>
+          {payload.reverse().map((entry, index) => (
+            <p key={index} className="text-sm text-gray-600">
+              {entry.dataKey === 'wonValue' ? 'Won Value' : entry.dataKey === 'loseValue' ? 'Lost Value' : 'Total Value'}: 
+              <span className="font-medium ml-1" style={{ color: entry.color }}>
+                Rp {entry.value.toLocaleString('id-ID')}
+              </span>
+            </p>
+          ))}
+        </div>
+      )
+    }
+    return null
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-semibold text-black">{title}</h3>
+          <BarChart3 className="h-4 w-4 text-gray-400" />
+        </div>
+        <div className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis 
+                dataKey="date" 
+                fontSize={11}
+                stroke="#666"
+                angle={-45}
+                textAnchor="end"
+                height={60}
+              />
+              <YAxis 
+                stroke="#666" 
+                fontSize={11}
+                tickFormatter={formatValue}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend />
+              <Bar
+                dataKey="wonValue"
+                fill="#22c55e"
+                name="Won Value"
+                radius={[2, 2, 0, 0]}
+              />
+              <Bar
+                dataKey="loseValue"
+                fill="#ef4444"
+                name="Lost Value"
+                radius={[2, 2, 0, 0]}
+              />
+            </BarChart>
           </ResponsiveContainer>
         </div>
       </CardContent>

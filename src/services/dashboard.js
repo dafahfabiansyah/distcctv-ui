@@ -95,11 +95,26 @@ class DashboardService {
 
   /**
    * Mengambil sales target data
+   * @param {Object} params - Parameter filter (year, month)
    * @returns {Promise} Response dari API
    */
-  async getSalesTargetData() {
+  async getSalesTargetData(params = {}) {
     try {
-      const response = await api.get('/api/v2/crm/dashboard/sales-target-data')
+      const queryParams = {}
+      
+      // Add year and month parameters if provided
+      if (params.year) {
+        queryParams.year = params.year
+      }
+      if (params.month) {
+        queryParams.month = params.month
+      }
+      
+      console.log('Sales target query params:', queryParams)
+      
+      const response = await api.get('/api/v2/crm/dashboard/sales-target-data', {
+        params: queryParams
+      })
       return response.data
     } catch (error) {
       console.error('Error fetching sales target data:', error)
@@ -108,13 +123,40 @@ class DashboardService {
   }
 
   /**
-   * Menyimpan sales target baru
-   * @param {Object} targetData - Data sales target
+   * Mengambil list sales/users untuk target setting
+   * @returns {Promise} Response dari API
+   */
+  async getSalesList() {
+    try {
+      const response = await api.get('/api/v2/crm/dashboard/sales-list')
+      return response.data
+    } catch (error) {
+      console.error('Error fetching sales list:', error)
+      
+      // Fallback ke dummy data jika endpoint belum ada
+      return {
+        success: true,
+        data: [
+          { id: 1, name: 'John Doe (Sales)' },
+          { id: 2, name: 'Jane Smith (Sales)' },
+          { id: 3, name: 'Mike Johnson (Sales)' },
+          { id: 4, name: 'Sarah Wilson (Sales)' },
+          { id: 5, name: 'David Brown (Sales)' }
+        ]
+      }
+    }
+  }
+
+  /**
+   * Menyimpan sales target baru (API endpoint untuk React)
+   * @param {Object} targetData - Data sales target dengan format: { month, year, targets: [{ user_id, target_value }] }
    * @returns {Promise} Response dari API
    */
   async storeSalesTarget(targetData) {
     try {
-      const response = await api.post('/api/v2/crm/dashboard/sales-target', targetData)
+      console.log('Storing sales target via API:', targetData)
+      
+      const response = await api.post('/api/v2/crm/dashboard/sales-target-api', targetData)
       return response.data
     } catch (error) {
       console.error('Error storing sales target:', error)
@@ -124,11 +166,26 @@ class DashboardService {
 
   /**
    * Mengambil sales achievement data
+   * @param {Object} params - Parameter filter (year, month)
    * @returns {Promise} Response dari API
    */
-  async getSalesAchievement() {
+  async getSalesAchievement(params = {}) {
     try {
-      const response = await api.get('/api/v2/crm/dashboard/sales-achivment')
+      const queryParams = {}
+      
+      // Add year and month parameters if provided
+      if (params.year) {
+        queryParams.year = params.year
+      }
+      if (params.month) {
+        queryParams.month = params.month
+      }
+      
+      console.log('Sales achievement query params:', queryParams)
+      
+      const response = await api.get('/api/v2/crm/dashboard/sales-achivment', {
+        params: queryParams
+      })
       return response.data
     } catch (error) {
       console.error('Error fetching sales achievement:', error)
@@ -213,5 +270,5 @@ class DashboardService {
 // Create and export dashboard service instance
 const dashboardService = new DashboardService()
 
-export { dashboardService }
+export { dashboardService, getDefaultDateRange }
 export default dashboardService

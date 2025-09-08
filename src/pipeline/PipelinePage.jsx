@@ -1889,10 +1889,11 @@ export default function PipelinePage() {
                                   <label className="text-sm font-medium text-gray-500">Automation Reason Assigning</label>
                                   <textarea 
                                     name="automation_reason"
-                                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-sm bg-gray-50 resize-none"
                                     rows="2"
-                                    placeholder="Enter automation reason..."
-                                    defaultValue={selectedLead?.automation_reason || ''}
+                                    placeholder="Automation reason will be displayed here..."
+                                    value={selectedLead?.automation_reason || ''}
+                                    readOnly
                                   />
                                 </div>
 

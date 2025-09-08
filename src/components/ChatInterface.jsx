@@ -245,18 +245,29 @@ function ChatInterface({ lead }) {
 
   // Function to process quoted message (reply)
   const processQuotedMessage = (chat) => {
-    if (!chat.quoted) return null
+    if (!chat.quoted_chat_id) return null
+    
+    // Find the original message being quoted
+    const quotedMessage = chats.find(c => c.id === chat.quoted_chat_id)
     
     return (
       <div className="mb-2 pl-3 border-l-2 border-gray-300 bg-gray-50 p-2 rounded text-xs">
         <div className="text-gray-600">
-          {chat.quoted.media ? (
+          {quotedMessage ? (
             <div>
-              {chat.quoted.type_content === 'image' ? '🖼️ Image' : '📎 File'}
-              {chat.quoted.caption && <p className="mt-1">{chat.quoted.caption}</p>}
+              {quotedMessage.media ? (
+                <div>
+                  {quotedMessage.type_content === 'image' ? '🖼️ Image' : 
+                   quotedMessage.type_content === 'video' ? '🎥 Video' :
+                   quotedMessage.type_content === 'document' || quotedMessage.type_content === 'file' ? '📎 Document' : '📎 File'}
+                  {quotedMessage.caption && <p className="mt-1">{quotedMessage.caption}</p>}
+                </div>
+              ) : (
+                <p className="truncate">{quotedMessage.data || '(No content)'}</p>
+              )}
             </div>
           ) : (
-            <p>{chat.quoted.data || '(No content)'}</p>
+            <p className="text-gray-400 italic">Original message not found</p>
           )}
         </div>
       </div>

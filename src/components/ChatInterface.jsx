@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Send, Paperclip, Phone, Video } from "lucide-react"
+import { Send, Paperclip, Phone, Video, Reply } from "lucide-react"
 import pipelineService from "@/services/pipeline"
 
 function ChatInterface({ lead }) {
@@ -10,7 +10,11 @@ function ChatInterface({ lead }) {
   const [error, setError] = useState(null)
   const [newMessage, setNewMessage] = useState('')
   const [isLoggingCall, setIsLoggingCall] = useState(false)
+  const [isSending, setIsSending] = useState(false)
+  const [selectedFile, setSelectedFile] = useState(null)
+  const [targetReply, setTargetReply] = useState('')
   const messagesEndRef = useRef(null)
+  const fileInputRef = useRef(null)
 
   // Fetch chats when lead changes
   useEffect(() => {
@@ -72,6 +76,78 @@ function ChatInterface({ lead }) {
       // Optional: Show error message
     } finally {
       setIsLoggingCall(false)
+    }
+  }
+
+  // Function to handle file selection
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0]
+    if (file) {
+      setSelectedFile(file)
+      console.log('File selected:', file.name, file.size)
+    }
+  }
+
+  // Function to clear selected file
+  const clearSelectedFile = () => {
+    setSelectedFile(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  // Function to send WhatsApp message
+  const handleSendMessage = async () => {
+    if (!lead?.phone) {
+      alert('No phone number available for this lead')
+      return
+    }
+
+    // Validate input - either message or file is required
+    if (!newMessage.trim() && !selectedFile) {
+      alert('Please enter a message or select a file')
+      return
+    }
+
+    setIsSending(true)
+
+    try {
+      const response = await pipelineService.sendWhatsappMessage(
+        lead.id,
+        newMessage.trim(),
+        selectedFile,
+        targetReply
+      )
+
+      console.log('WhatsApp message sent:', response)
+
+      // Reset form
+      setNewMessage('')
+      clearSelectedFile()
+      setTargetReply('')
+
+      // Refresh chat messages to show the new message
+      // Add a small delay to allow server to process
+      setTimeout(async () => {
+        await fetchChats(lead.id)
+      }, 1000)
+
+      // Optional: Show success message in a more user-friendly way
+      console.log('Message sent successfully!')
+
+    } catch (error) {
+      console.error('Error sending WhatsApp message:', error)
+      alert('Failed to send message: ' + error.message)
+    } finally {
+      setIsSending(false)
+    }
+  }
+
+  // Function to handle Enter key press
+  const handleKeyPress = (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault()
+      handleSendMessage()
     }
   }
 
@@ -167,6 +243,34 @@ function ChatInterface({ lead }) {
     return <p className="text-sm italic">(No content)</p>
   }
 
+  // Function to process quoted message (reply)
+  const processQuotedMessage = (chat) => {
+    if (!chat.quoted) return null
+    
+    return (
+      <div className="mb-2 pl-3 border-l-2 border-gray-300 bg-gray-50 p-2 rounded text-xs">
+        <div className="text-gray-600">
+          {chat.quoted.media ? (
+            <div>
+              {chat.quoted.type_content === 'image' ? '🖼️ Image' : '📎 File'}
+              {chat.quoted.caption && <p className="mt-1">{chat.quoted.caption}</p>}
+            </div>
+          ) : (
+            <p>{chat.quoted.data || '(No content)'}</p>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // Function to handle reply to message
+  const handleReplyMessage = (chat) => {
+    setTargetReply(chat.id || '')
+    console.log('Replying to message:', chat.id)
+    // Focus on input for better UX
+    document.querySelector('input[placeholder="Type a message..."]')?.focus()
+  }
+
   return (
     <div className="flex flex-col h-[650px] w-full"> {/* Fixed height, full width */}
       {/* Chat Header dengan Lead Info */}
@@ -225,14 +329,33 @@ function ChatInterface({ lead }) {
                   ? 'bg-crm-primary text-white' 
                   : 'bg-gray-100 text-gray-900'
               }`}>
+                {/* Quoted Message */}
+                {processQuotedMessage(chat)}
+                
+                {/* Main Message Content */}
                 <div className="mb-2">
                   {processMessageContent(chat)}
                 </div>
-                <p className={`text-xs ${
-                  isFromAgent(chat) ? 'text-white/70' : 'text-gray-500'
-                }`}>
-                  {formatTimestamp(chat.created_at)}
-                </p>
+                
+                {/* Message Footer */}
+                <div className="flex items-center justify-between">
+                  <p className={`text-xs ${
+                    isFromAgent(chat) ? 'text-white/70' : 'text-gray-500'
+                  }`}>
+                    {formatTimestamp(chat.created_at)}
+                  </p>
+                  
+                  {/* Reply Button - only show for customer messages */}
+                  {!isFromAgent(chat) && (
+                    <button
+                      onClick={() => handleReplyMessage(chat)}
+                      className="ml-2 text-xs text-gray-500 hover:text-gray-700 underline"
+                      title="Reply to this message"
+                    >
+                      Reply
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))
@@ -243,20 +366,113 @@ function ChatInterface({ lead }) {
 
       {/* Input Area */}
       <div className="px-4 py-3 border-t flex-shrink-0">
+        {/* Reply Preview */}
+        {targetReply && (
+          <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-xs font-medium text-blue-700 mb-1">Replying to:</p>
+                <div className="text-sm text-blue-600">
+                  {(() => {
+                    const replyChat = chats.find(c => c.id === targetReply)
+                    if (!replyChat) return 'Message not found'
+                    
+                    if (replyChat.media) {
+                      return replyChat.type_content === 'image' ? '🖼️ Image' : '📎 File'
+                    }
+                    return replyChat.data || '(No content)'
+                  })()}
+                </div>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setTargetReply('')}
+                className="text-blue-500 hover:text-blue-700 hover:bg-blue-100"
+              >
+                ×
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* File Preview */}
+        {selectedFile && (
+          <div className="mb-3 p-3 bg-gray-50 rounded-lg border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Paperclip className="h-4 w-4 text-gray-500" />
+                <span className="text-sm text-gray-700">{selectedFile.name}</span>
+                <span className="text-xs text-gray-500">
+                  ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                </span>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={clearSelectedFile}
+                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+              >
+                ×
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Input Row */}
         <div className="flex gap-2">
-          <Button variant="ghost" size="sm">
+          {/* Hidden File Input */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+            className="hidden"
+            accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
+          />
+          
+          {/* File Upload Button */}
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isSending}
+            title="Attach File"
+          >
             <Paperclip className="h-4 w-4" />
           </Button>
+          
+          {/* Message Input */}
           <Input 
             placeholder="Type a message..."
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
             className="flex-1"
+            disabled={isSending}
           />
-          <Button size="sm" className="bg-crm-primary hover:bg-crm-primary-hover">
-            <Send className="h-4 w-4" />
+          
+          {/* Send Button */}
+          <Button 
+            size="sm" 
+            className="bg-crm-primary hover:bg-crm-primary-hover"
+            onClick={handleSendMessage}
+            disabled={isSending || (!newMessage.trim() && !selectedFile)}
+          >
+            {isSending ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
           </Button>
         </div>
+
+        {/* Send Status */}
+        {isSending && (
+          <div className="mt-2 text-xs text-gray-500 flex items-center gap-1">
+            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-400"></div>
+            Sending message...
+          </div>
+        )}
       </div>
     </div>
   )

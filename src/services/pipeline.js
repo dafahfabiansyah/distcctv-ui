@@ -10,7 +10,10 @@ const API_CONFIG = {
 }
 
 // Create axios instance
-const api = axios.create(API_CONFIG)
+const api = axios.create({
+  ...API_CONFIG,
+  withCredentials: true // Tambahkan ini untuk support CORS credentials
+})
 
 // Add request interceptor untuk menambahkan bearer token
 api.interceptors.request.use(
@@ -396,6 +399,130 @@ class PipelineService {
     } catch (error) {
       console.error('Error fetching chat hot status:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Kirim pesan WhatsApp ke lead (menggunakan Sanctum API)
+   * @param {string|number} leadId - ID lead
+   * @param {string} message - Pesan yang akan dikirim
+   * @param {File|null} file - File attachment (opsional)
+   * @param {string|null} replyId - ID pesan yang di-reply (opsional)
+   * @returns {Promise} Response dari API
+   */
+  async sendWhatsappMessage(leadId, message, file = null, replyId = null) {
+    try {
+      // Validasi input
+      if (!leadId) {
+        throw new Error('Lead ID is required');
+      }
+      
+      if (!message && !file) {
+        throw new Error('Message or file is required');
+      }
+
+      // Prepare form data
+      const formData = new FormData();
+      formData.append('message', message || '');
+      
+      if (replyId) {
+        formData.append('reply_id', replyId);
+      }
+      
+      if (file) {
+        formData.append('file', file);
+      }
+
+      // Debug log
+      console.log('Sending WhatsApp message via Sanctum API:', {
+        leadId,
+        message: message || '(empty message)',
+        hasFile: !!file,
+        replyId: replyId || '(no reply)',
+        endpoint: `/api/v2/whatsapp/send/${leadId}`
+      });
+
+      // Kirim ke endpoint Sanctum API
+      const response = await api.post(`/api/v2/whatsapp/send/${leadId}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 30000 // 30 detik timeout untuk upload file
+      });
+      
+      console.log('WhatsApp send response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error sending WhatsApp message:', error);
+      
+      // Log detail error untuk debugging
+      if (error.response) {
+        console.error('Response error details:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+          headers: error.response.headers
+        });
+      }
+      
+      // Better error handling
+      if (error.response?.status === 422) {
+        throw new Error('Validation error: ' + (error.response.data?.message || 'Invalid input'));
+      } else if (error.response?.status === 401) {
+        throw new Error('Unauthorized: Please login again');
+      } else if (error.response?.status === 500) {
+        throw new Error('Server error: Unable to send message');
+      } else if (error.code === 'ECONNABORTED') {
+        throw new Error('Request timeout: Please try again');
+      } else {
+        throw new Error(error.message || 'Failed to send WhatsApp message');
+      }
+    }
+  }
+
+  /**
+   * Simpan komentar/activity untuk lead
+   * @param {string|number} leadId - ID lead
+   * @param {Object} activityData - Data activity (tag, comment)
+   * @returns {Promise} Response dari API
+   */
+  async saveComment(leadId, activityData) {
+    try {
+      if (!leadId) {
+        throw new Error('Lead ID is required');
+      }
+
+      if (!activityData.comment) {
+        throw new Error('Comment is required');
+      }
+
+      // Prepare form data
+      const formData = new URLSearchParams();
+      formData.append('tag', activityData.tag || '');
+      formData.append('comment', activityData.comment);
+
+      // Get CSRF token from meta tag (if exists)
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+      const response = await api.post(`/api/v2/crm/leads/${leadId}/comment`, formData, {
+        headers: {
+          'X-CSRF-TOKEN': csrfToken || '',
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Error saving comment:', error);
+      
+      // Better error handling
+      if (error.response?.status === 422) {
+        throw new Error('Validation error: ' + (error.response.data?.message || 'Invalid input'));
+      } else if (error.response?.status === 500) {
+        throw new Error('Server error: Unable to save comment');
+      } else {
+        throw new Error(error.message || 'Failed to save comment');
+      }
     }
   }
 }

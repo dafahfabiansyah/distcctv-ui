@@ -660,6 +660,11 @@ export default function PipelinePage() {
   const handleSaveComment = async () => {
     if (!selectedLead?.id) return
     
+    if (!activityForm.comment.trim()) {
+      alert('Please enter a comment')
+      return
+    }
+    
     try {
       console.log('Saving comment:', {
         leadId: selectedLead.id,
@@ -667,19 +672,19 @@ export default function PipelinePage() {
         tag: activityForm.tag
       })
       
-      // TODO: Call API to save comment
-      // await pipelineService.saveComment(selectedLead.id, activityForm)
+      // Call API to save comment
+      await pipelineService.saveComment(selectedLead.id, activityForm)
       
       // Reset form
       setActivityForm({ tag: '', comment: '' })
       
       // Refresh activities
-      fetchActivities(selectedLead.id)
+      await fetchActivities(selectedLead.id)
       
       alert('Comment saved successfully!')
     } catch (error) {
       console.error('Error saving comment:', error)
-      alert('Failed to save comment')
+      alert('Failed to save comment: ' + error.message)
     }
   }
 

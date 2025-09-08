@@ -247,6 +247,7 @@ export default function PipelinePage() {
   const [activeTab, setActiveTab] = useState("whatsapp")
   const [leadsData, setLeadsData] = useState([])
   const [stages, setStages] = useState([])
+  const [salesData, setSalesData] = useState([])
   const [selectedLead, setSelectedLead] = useState(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [showQuotationModal, setShowQuotationModal] = useState(false)
@@ -360,6 +361,24 @@ export default function PipelinePage() {
     return []
   }
 
+  // Fetch sales data dari API
+  const fetchSales = async () => {
+    try {
+      console.log('Fetching sales data...')
+      const response = await pipelineService.getSales()
+      console.log('Sales API Response:', response)
+      
+      if (response && response.success && response.data) {
+        setSalesData(response.data)
+        console.log('Sales data loaded:', response.data)
+      } else {
+        console.log('Sales API response invalid:', response)
+      }
+    } catch (error) {
+      console.error('Error fetching sales:', error)
+    }
+  }
+
   // Fetch data leads dari API
   const fetchLeads = async () => {
     console.log('fetchLeads called with pipelineId:', pipelineId)
@@ -455,6 +474,7 @@ export default function PipelinePage() {
   // Effect untuk fetch data ketika component mount atau pipelineId berubah
   useEffect(() => {
     fetchLeads()
+    fetchSales() // Load sales data on component mount
   }, [pipelineId])
 
   // Effect untuk fetch data ketika filter berubah
@@ -1282,7 +1302,11 @@ export default function PipelinePage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Sales</SelectItem>
-                        <SelectItem value="Alice">Alice</SelectItem>
+                        {salesData.map((sales) => (
+                          <SelectItem key={sales.id} value={sales.id.toString()}>
+                            {sales.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1536,10 +1560,11 @@ export default function PipelinePage() {
                       className="w-full flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <option value="">Pilih nama untuk di-tag</option>
-                      <option value="8">Tria</option>
-                      <option value="17">Triawati Agustina</option>
-                      <option value="9">Operasional DISTCCTV</option>
-                      <option value="16">Sukarma</option>
+                      {salesData.map((sales) => (
+                        <option key={sales.id} value={sales.id}>
+                          {sales.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -1852,9 +1877,11 @@ export default function PipelinePage() {
                                   >
                                     <option value="">Select Responsible</option>
                                     <option value="kosong">Kosong</option>
-                                    <option value="1">Admin</option>
-                                    <option value="8">Sales 1</option>
-                                    <option value="3">Sales 2</option>
+                                    {salesData.map((sales) => (
+                                      <option key={sales.id} value={sales.id}>
+                                        {sales.name}
+                                      </option>
+                                    ))}
                                   </select>
                                 </div>
 
@@ -1870,43 +1897,49 @@ export default function PipelinePage() {
                                 </div>
 
                                 <div>
-                                  <label className="text-sm font-medium text-gray-500">Automation Supervisor Advice</label>
-                                  <textarea 
+                                  <label className="text-sm font-medium text-gray-500">
+                                    Automation Supervisor Advice
+                                  </label>
+                                  <div className="w-full mt-1 px-3 py-2 border border-gray-200 bg-gray-50 rounded-md text-sm text-gray-700 min-h-[80px] whitespace-pre-wrap break-words">
+                                    {selectedLead?.supervisor_advice || 'Belum ada data'}
+                                  </div>
+                                  <input 
+                                    type="hidden"
                                     name="supervisor_advice"
-                                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                                    rows="2" 
-                                    placeholder="Enter supervisor advice..."
-                                    defaultValue={selectedLead?.supervisor_advice || ''}
+                                    value={selectedLead?.supervisor_advice || ''}
                                   />
                                 </div>
                               </div>
 
                               <hr className="my-4" />
 
-                              {/* Chat Score Opportunity */}
+                              {/* Chat Score Opportunity - Auto-filled from API */}
                               <div>
-                                <label className="text-sm font-medium text-gray-500 block mb-2">Chat Score Opportunity</label>
+                                <label className="text-sm font-medium text-gray-500 block mb-2">
+                                  Chat Score Opportunity 
+                                  {/* <span className="text-xs text-blue-500 ml-1">(Auto-generated from API)</span> */}
+                                </label>
                                 <div className="grid grid-cols-2 gap-4">
                                   <div>
                                     <label className="text-xs font-medium text-gray-400">Score</label>
+                                    <div className="w-full mt-1 px-3 py-2 border border-gray-200 bg-gray-50 rounded-md text-sm text-gray-700">
+                                      {selectedLead?.chat_score || '-'}
+                                    </div>
                                     <input 
-                                      type="number"
+                                      type="hidden"
                                       name="chat_score"
-                                      className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                      placeholder="0-100"
-                                      min="0"
-                                      max="100"
-                                      defaultValue={selectedLead?.chat_score || ''}
+                                      value={selectedLead?.chat_score || ''}
                                     />
                                   </div>
                                   <div>
                                     <label className="text-xs font-medium text-gray-400">Reason</label>
+                                    <div className="w-full mt-1 px-3 py-2 border border-gray-200 bg-gray-50 rounded-md text-sm text-gray-700 min-h-[38px] flex items-center">
+                                      {selectedLead?.score_reason || '-'}
+                                    </div>
                                     <input 
-                                      type="text"
+                                      type="hidden"
                                       name="score_reason"
-                                      className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                      placeholder="Enter reason..."
-                                      defaultValue={selectedLead?.score_reason || ''}
+                                      value={selectedLead?.score_reason || ''}
                                     />
                                   </div>
                                 </div>
@@ -1930,7 +1963,9 @@ export default function PipelinePage() {
                                       const leadCity = document.querySelector('input[name="lead_city"]')?.value
                                       const responsible = document.querySelector('select[name="responsible"]')?.value
                                       const automationReason = document.querySelector('textarea[name="automation_reason"]')?.value
-                                      const supervisorAdvice = document.querySelector('textarea[name="supervisor_advice"]')?.value
+                                      // Supervisor advice diambil dari hidden input (read-only data dari API)
+                                      const supervisorAdvice = document.querySelector('input[name="supervisor_advice"]')?.value
+                                      // Chat score dan reason diambil dari hidden input (read-only data dari API)
                                       const chatScore = document.querySelector('input[name="chat_score"]')?.value
                                       const scoreReason = document.querySelector('input[name="score_reason"]')?.value
 
@@ -2298,8 +2333,11 @@ export default function PipelinePage() {
                             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                           >
                             <option value="">Select person to tag</option>
-                            <option value="17">Triawati Agustina</option>
-                            <option value="16">Sukarma</option>
+                            {salesData.map((sales) => (
+                              <option key={sales.id} value={sales.id}>
+                                {sales.name}
+                              </option>
+                            ))}
                           </select>
                         </div>
                         
@@ -2338,7 +2376,7 @@ export default function PipelinePage() {
                           type="button"
                           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white"
                           onClick={handleLogCall}
-                          disabled={!activityForm.comment.trim()}
+                          // disabled={!activityForm.comment.trim()}
                         >
                           Log Call
                         </Button>

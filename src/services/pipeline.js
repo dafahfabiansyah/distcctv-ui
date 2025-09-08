@@ -496,20 +496,13 @@ class PipelineService {
         throw new Error('Comment is required');
       }
 
-      // Prepare form data
-      const formData = new URLSearchParams();
-      formData.append('tag', activityData.tag || '');
+      // Prepare form data - sama seperti dashboard lama
+      const formData = new FormData();
+      formData.append('tagto', activityData.tag || ''); // Sesuai dengan name di form lama
       formData.append('comment', activityData.comment);
 
-      // Get CSRF token from meta tag (if exists)
-      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-
-      const response = await api.post(`/api/v2/crm/leads/${leadId}/comment`, formData, {
-        headers: {
-          'X-CSRF-TOKEN': csrfToken || '',
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      });
+      // Gunakan endpoint Sanctum yang menggunakan controller lama
+      const response = await api.post(`/api/v2/crm/lead/${leadId}/comment`, formData);
 
       return response.data;
     } catch (error) {
@@ -518,11 +511,27 @@ class PipelineService {
       // Better error handling
       if (error.response?.status === 422) {
         throw new Error('Validation error: ' + (error.response.data?.message || 'Invalid input'));
+      } else if (error.response?.status === 401) {
+        throw new Error('Unauthorized: Please login again');
       } else if (error.response?.status === 500) {
         throw new Error('Server error: Unable to save comment');
       } else {
         throw new Error(error.message || 'Failed to save comment');
       }
+    }
+  }
+
+  /**
+   * Mengambil data sales untuk dropdown filter
+   * @returns {Promise} Response dari API
+   */
+  async getSales() {
+    try {
+      const response = await api.get('/api/v2/crm/sales');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching sales:', error);
+      throw error;
     }
   }
 }

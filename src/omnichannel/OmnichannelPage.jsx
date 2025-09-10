@@ -34,19 +34,40 @@ import {
 
 // Messages will be loaded from API based on selected conversation
 
-function MessageBubble({ message }) {
-  // Determine if message is from agent based on the 'to' field (agent's number)
-  const isAgent = message.from === '6285119746973' // Agent's number
+// Component to handle message content with proper word wrapping
+function MessageContent({ data }) {
+  if (!data) return '';
+  
+  return (
+    <p 
+      className="text-sm leading-relaxed break-words whitespace-pre-wrap"
+      style={{
+        wordWrap: 'break-word',
+        overflowWrap: 'break-word',
+        whiteSpace: 'pre-wrap'
+      }}
+    >
+      {data}
+    </p>
+  );
+}
+
+function MessageBubble({ message, selectedContact }) {
+  // Determine if message is from client (customer) based on phone number comparison
+  // If message.from equals client phone, then it's from client (receiver - left side)
+  // If message.from is NOT client phone, then it's from agent (sender - right side)
+  const isFromClient = message.from === selectedContact?.phone;
+  const isAgent = !isFromClient; 
   
   return (
     <div className={`flex ${isAgent ? 'justify-end' : 'justify-start'}`}>
-      <div className={`max-w-[70%] rounded-lg px-4 py-2 shadow-sm ${
+      <div className={`w-80 rounded-lg px-4 py-2 shadow-sm ${
         isAgent 
           ? 'bg-blue-500 text-white' 
           : 'bg-white text-gray-900 border'
       }`}>
         {message.type_content === 'chat' || !message.type_content ? (
-          <p className="text-sm leading-relaxed">{message.data}</p>
+          <MessageContent data={message.data} />
         ) : message.type_content === 'image' ? (
           <div>
             <img src={message.media} alt="Shared image" className="rounded max-w-full h-auto" />
@@ -233,7 +254,7 @@ function ChatArea({ messagesEndRef  ,selectedContact, messages, loadingMessages,
         ) : messages.length > 0 ? (
            <>
              {messages.map((message, index) => (
-               <MessageBubble key={`${message.timestamp}-${index}`} message={message} />
+               <MessageBubble key={`${message.timestamp}-${index}`} message={message} selectedContact={selectedContact} />
              ))}
              <div ref={messagesEndRef} />
            </>
@@ -396,7 +417,7 @@ export default function OmnichannelPage() {
   const totalUnread = (Array.isArray(chatContacts) ? chatContacts : []).reduce((sum, contact) => sum + (contact.unread_count || 0), 0)
 
   return (
-    <div className="flex bg-white  h-[calc(100vh-4rem)]">
+    <div className="flex bg-white h-[calc(100vh-4rem)]">
       {/* Left Panel - Contact List */}
       <div className="w-80 border-r border-gray-200 flex flex-col">
         {/* Header */}

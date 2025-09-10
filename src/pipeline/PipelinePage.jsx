@@ -1675,13 +1675,12 @@ export default function PipelinePage() {
                       <AvatarImage src={selectedLead?.avatar || "/placeholder.svg"} />
                       <AvatarImage src={selectedLead?.avatar || "/placeholder.svg"} />
                       <AvatarFallback>
-                        {selectedLead?.name
-                          ?.split(" ")
+                        
                         {selectedLead?.name
                           ?.split(" ")
                           .map((n) => n[0])
                           .join("") || "?"}
-                          .join("") || "?"}
+                          
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
@@ -3030,4 +3029,5 @@ export default function PipelinePage() {
         </div>
       </DndProvider>
   )
+}
 }

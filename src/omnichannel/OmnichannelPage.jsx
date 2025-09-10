@@ -85,7 +85,13 @@ function MessageBubble({ message, selectedContact }) {
         <p className={`text-xs mt-1 ${
           isAgent ? 'text-white/70' : 'text-gray-500'
         }`}>
-          {formatTimestamp(message.created_at || message.timestamp)}
+          {new Date(message.created_at).toLocaleString('id-ID', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })}
         </p>
       </div>
     </div>

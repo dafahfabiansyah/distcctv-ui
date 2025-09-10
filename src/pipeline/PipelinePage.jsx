@@ -391,9 +391,6 @@ export default function PipelinePage() {
       console.log('No pipelineId provided')
       setError('Pipeline ID is required')
       setLoading(false)
-      console.log('No pipelineId provided')
-      setError('Pipeline ID is required')
-      setLoading(false)
       return
     }
 
@@ -401,9 +398,12 @@ export default function PipelinePage() {
     setError(null)
     
     try {
-      // Fetch stages first
-      const stagesData = await fetchStages()
-      setStages(stagesData)
+      // Fetch stages first if not provided or empty
+      let stagesData = currentStages
+      if (!currentStages || currentStages.length === 0) {
+        stagesData = await fetchStages()
+        setStages(stagesData)
+      }
       
       // Prepare query parameters for API call
       const queryParams = {
@@ -421,9 +421,9 @@ export default function PipelinePage() {
       console.log('API Response:', response)
       
       // Transform data sesuai struktur yang diharapkan komponen
+      const transformedLeads = []
+      
       if (response && Array.isArray(response)) {
-        const transformedLeads = []
-        
         console.log('Found leads array in response:', response.length, 'leads')
         
         // Transform leads data
@@ -435,7 +435,7 @@ export default function PipelinePage() {
             company: lead.company || '',
             email: lead.email || '',
             phone: lead.phone,
-            stage: lead.lead_on_stage ? lead.lead_on_stage.stage_id : currentStages[0]?.id || null,
+            stage: lead.lead_on_stage ? lead.lead_on_stage.stage_id : stagesData[0]?.id || null,
             value: lead.amount || 0,
             source: lead.source_name || 'Unknown',
             lastActivity: lead.updated_at,
@@ -455,21 +455,23 @@ export default function PipelinePage() {
             score_reason: lead.lead_opportunity_reason || ''
           })
         })
-        
-        console.log('Transformed leads:', transformedLeads)
-        
-        // Update stage counts
-        const updatedStages = currentStages.map(stage => ({
-          ...stage,
-          count: transformedLeads.filter(lead => lead.stage === stage.id).length
-        }))
-        
-        console.log('Updated stages with counts:', updatedStages)
-        
-        setLeadsData(transformedLeads)
-        setStages(updatedStages)
-        console.timeEnd('fetchLeads')
+      } else {
+        console.log('No leads found in response or response is not an array')
       }
+      
+      console.log('Transformed leads:', transformedLeads)
+      
+      // Update stage counts - always update stages even if no leads
+      const updatedStages = stagesData.map(stage => ({
+        ...stage,
+        count: transformedLeads.filter(lead => lead.stage === stage.id).length
+      }))
+      
+      console.log('Updated stages with counts:', updatedStages)
+      
+      setLeadsData(transformedLeads)
+      setStages(updatedStages)
+      console.timeEnd('fetchLeads')
     } catch (err) {
       console.error('Error fetching leads:', err)
       console.timeEnd('fetchLeads')
@@ -1374,6 +1376,15 @@ export default function PipelinePage() {
               <p className="text-red-600 mb-4">{error}</p>
               <Button onClick={fetchLeads} variant="outline">
                 Retry
+              </Button>
+            </div>
+          </div>
+        ) : stages.length === 0 ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <p className="text-gray-600 mb-4">No pipeline stages found</p>
+              <Button onClick={fetchLeads} variant="outline">
+                Refresh
               </Button>
             </div>
           </div>

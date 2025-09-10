@@ -389,7 +389,7 @@ class PipelineService {
   async getLeadChatStatus(phone, leadTimestamp) {
     try {
       // Menggunakan gateway URL untuk chat status
-      const gatewayUrl = import.meta.env.VITE_GATEWAY_URL || 'http://127.0.0.1:8000';
+      const gatewayUrl = import.meta.env.VITE_GATEWAY_URL || 'http://localhost:3001';
       const response = await axios.get(`${gatewayUrl}/inbox/chat-summary`, {
         params: {
           phone: phone,

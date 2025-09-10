@@ -50,7 +50,7 @@ export default function Sidebar() {
     
     setLoading(true)
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/v2/crm/pipelines', {
+      const response = await fetch(`${import.meta.env.VITE_BASE_URL}/api/v2/crm/pipelines`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

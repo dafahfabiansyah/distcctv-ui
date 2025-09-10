@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
@@ -16,408 +16,59 @@ import {
   MoreVertical,
   MessageSquare,
   Filter,
-  Archive
+  Archive,
+  Loader2,
+  FileText
 } from "lucide-react"
+import { 
+  getChatList, 
+  loadConversation, 
+  sendMessage, 
+  formatTimestamp, 
+  formatFileSize, 
+  getMessageTypeIcon, 
+  getMessagePreview 
+} from "@/services/omnichannel"
 
-// Sample chat data dengan berbagai sumber
-const chatContacts = [
-  {
-    id: 1,
-    name: "Sarah Johnson",
-    lastMessage: "Terima kasih atas informasinya, saya tertarik dengan produk CCTV outdoor",
-    timestamp: "2 min ago",
-    unreadCount: 2,
-    avatar: "/diverse-woman-portrait.png",
-    source: "whatsapp",
-    status: "online",
-    phone: "+62 812-3456-7890"
-  },
-  {
-    id: 2,
-    name: "Michael Chen",
-    lastMessage: "Apakah ada paket bundling untuk sistem keamanan lengkap?",
-    timestamp: "5 min ago",
-    unreadCount: 0,
-    avatar: "/thoughtful-man.png",
-    source: "tawkto",
-    status: "online",
-    email: "michael.chen@email.com"
-  },
-  {
-    id: 3,
-    name: "Lisa Wong",
-    lastMessage: "Saya butuh konsultasi untuk instalasi CCTV di kantor",
-    timestamp: "15 min ago",
-    unreadCount: 1,
-    avatar: "/diverse-woman-portrait.png",
-    source: "whatsapp",
-    status: "away",
-    phone: "+62 821-9876-5432"
-  },
-  {
-    id: 4,
-    name: "David Kumar",
-    lastMessage: "Halo, saya ingin tanya harga kamera IP terbaru",
-    timestamp: "1 hour ago",
-    unreadCount: 0,
-    avatar: "/thoughtful-man.png",
-    source: "tawkto",
-    status: "offline",
-    email: "david.kumar@company.com"
-  },
-  {
-    id: 5,
-    name: "Amanda Silva",
-    lastMessage: "Kapan bisa jadwal survey lokasi?",
-    timestamp: "2 hours ago",
-    unreadCount: 3,
-    avatar: "/diverse-woman-portrait.png",
-    source: "whatsapp",
-    status: "online",
-    phone: "+62 813-2468-1357"
-  },
-  {
-    id: 6,
-    name: "Robert Taylor",
-    lastMessage: "Mohon info detail spesifikasi DVR 16 channel",
-    timestamp: "3 hours ago",
-    unreadCount: 0,
-    avatar: "/thoughtful-man.png",
-    source: "tawkto",
-    status: "away",
-    email: "robert.taylor@business.com"
-  }
-]
+// Chat contacts will be loaded from API
 
-// Sample messages untuk chat yang dipilih
-const sampleMessages = {
-  1: [
-    {
-      id: 1,
-      sender: 'contact',
-      content: 'Halo, saya tertarik dengan produk CCTV untuk rumah',
-      timestamp: '09:15',
-      type: 'text'
-    },
-    {
-      id: 2,
-      sender: 'agent',
-      content: 'Halo! Terima kasih sudah menghubungi kami. Saya akan bantu Anda memilih CCTV yang tepat untuk rumah.',
-      timestamp: '09:17',
-      type: 'text'
-    },
-    {
-      id: 3,
-      sender: 'contact',
-      content: 'Saya butuh yang bisa akses dari HP dan kualitas gambar bagus',
-      timestamp: '09:20',
-      type: 'text'
-    },
-    {
-      id: 4,
-      sender: 'agent',
-      content: 'Untuk kebutuhan tersebut, saya rekomendasikan paket IP Camera dengan fitur mobile viewing. Apakah lokasi indoor atau outdoor?',
-      timestamp: '09:22',
-      type: 'text'
-    },
-    {
-      id: 5,
-      sender: 'contact',
-      content: 'Kombinasi keduanya, saya butuh 4 kamera outdoor dan 2 indoor',
-      timestamp: '09:25',
-      type: 'text'
-    },
-    {
-      id: 6,
-      sender: 'agent',
-      content: 'Perfect! Untuk paket 6 kamera (4 outdoor + 2 indoor) dengan NVR 8 channel, harganya Rp 8.500.000. Sudah termasuk instalasi dan garansi 2 tahun.',
-      timestamp: '09:28',
-      type: 'text'
-    },
-    {
-      id: 7,
-      sender: 'contact',
-      content: 'Wah menarik, bisa lihat contoh hasil rekamannya?',
-      timestamp: '09:30',
-      type: 'text'
-    },
-    {
-      id: 8,
-      sender: 'agent',
-      content: 'Tentu! Saya kirimkan video sample dan brosur lengkapnya ya. Kapan waktu yang tepat untuk survey lokasi?',
-      timestamp: '09:32',
-      type: 'text'
-    },
-    {
-      id: 9,
-      sender: 'contact',
-      content: 'Terima kasih atas informasinya, saya tertarik dengan produk CCTV outdoor',
-      timestamp: '09:35',
-      type: 'text'
-    }
-  ],
-  2: [
-    {
-      id: 1,
-      sender: 'contact',
-      content: 'Good afternoon, I need information about your security camera packages',
-      timestamp: '13:45',
-      type: 'text'
-    },
-    {
-      id: 2,
-      sender: 'agent',
-      content: 'Good afternoon! I\'d be happy to help you with our security camera packages. What type of property are you looking to secure?',
-      timestamp: '13:47',
-      type: 'text'
-    },
-    {
-      id: 3,
-      sender: 'contact',
-      content: 'It\'s for a small office building. We need about 8-10 cameras.',
-      timestamp: '13:50',
-      type: 'text'
-    },
-    {
-      id: 4,
-      sender: 'agent',
-      content: 'Perfect! For a small office, I recommend our Professional Package with IP cameras and NVR system. Would you like me to prepare a detailed quote?',
-      timestamp: '13:52',
-      type: 'text'
-    },
-    {
-      id: 5,
-      sender: 'contact',
-      content: 'Yes, please. We also need night vision capability and remote monitoring.',
-      timestamp: '13:54',
-      type: 'text'
-    },
-    {
-      id: 6,
-      sender: 'agent',
-      content: 'Excellent! Our Professional Package includes infrared night vision up to 30 meters and 24/7 remote monitoring via mobile app. The total for 10 cameras would be $2,850.',
-      timestamp: '13:56',
-      type: 'text'
-    },
-    {
-      id: 7,
-      sender: 'contact',
-      content: 'That sounds reasonable. What about installation and warranty?',
-      timestamp: '13:58',
-      type: 'text'
-    },
-    {
-      id: 8,
-      sender: 'agent',
-      content: 'Installation is included in the price, and we provide 3-year warranty on all equipment. We can schedule installation within 3-5 business days.',
-      timestamp: '14:00',
-      type: 'text'
-    },
-    {
-      id: 9,
-      sender: 'contact',
-      content: 'Apakah ada paket bundling untuk sistem keamanan lengkap?',
-      timestamp: '14:02',
-      type: 'text'
-    }
-  ],
-  3: [
-    {
-      id: 1,
-      sender: 'contact',
-      content: 'Selamat siang, saya Lisa dari PT. Maju Jaya',
-      timestamp: '11:30',
-      type: 'text'
-    },
-    {
-      id: 2,
-      sender: 'agent',
-      content: 'Selamat siang Bu Lisa! Ada yang bisa saya bantu untuk kebutuhan CCTV perusahaan?',
-      timestamp: '11:32',
-      type: 'text'
-    },
-    {
-      id: 3,
-      sender: 'contact',
-      content: 'Kami butuh upgrade sistem CCTV di kantor. Yang lama sudah 5 tahun dan sering bermasalah',
-      timestamp: '11:35',
-      type: 'text'
-    },
-    {
-      id: 4,
-      sender: 'agent',
-      content: 'Saya mengerti Bu. Berapa titik kamera yang dibutuhkan dan apakah ada area khusus yang perlu pengawasan ekstra?',
-      timestamp: '11:37',
-      type: 'text'
-    },
-    {
-      id: 5,
-      sender: 'contact',
-      content: 'Total 12 titik. Area lobby, ruang server, dan gudang perlu resolusi tinggi',
-      timestamp: '11:40',
-      type: 'text'
-    },
-    {
-      id: 6,
-      sender: 'agent',
-      content: 'Untuk area kritikal seperti itu, saya rekomendasikan kamera 4K dengan storage NVR 16TB. Kapan bisa jadwal survey untuk assessment detail?',
-      timestamp: '11:43',
-      type: 'text'
-    },
-    {
-      id: 7,
-      sender: 'contact',
-      content: 'Saya butuh konsultasi untuk instalasi CCTV di kantor',
-      timestamp: '11:45',
-      type: 'text'
-    }
-  ],
-  4: [
-    {
-      id: 1,
-      sender: 'contact',
-      content: 'Halo, saya ingin tanya harga kamera IP terbaru',
-      timestamp: '10:15',
-      type: 'text'
-    },
-    {
-      id: 2,
-      sender: 'agent',
-      content: 'Halo! Untuk kamera IP, kami punya beberapa pilihan. Apakah untuk indoor atau outdoor?',
-      timestamp: '10:17',
-      type: 'text'
-    },
-    {
-      id: 3,
-      sender: 'contact',
-      content: 'Outdoor, butuh yang tahan cuaca dan night vision bagus',
-      timestamp: '10:20',
-      type: 'text'
-    },
-    {
-      id: 4,
-      sender: 'agent',
-      content: 'Untuk outdoor dengan night vision, kami rekomendasikan seri IP67 dengan IR 50 meter. Harga mulai dari Rp 1.200.000 per unit.',
-      timestamp: '10:22',
-      type: 'text'
-    }
-  ],
-  5: [
-    {
-      id: 1,
-      sender: 'contact',
-      content: 'Halo, saya Amanda. Kemarin sudah diskusi tentang instalasi CCTV',
-      timestamp: '08:30',
-      type: 'text'
-    },
-    {
-      id: 2,
-      sender: 'agent',
-      content: 'Halo Bu Amanda! Ya, saya ingat. Untuk rumah 2 lantai dengan 8 kamera ya?',
-      timestamp: '08:32',
-      type: 'text'
-    },
-    {
-      id: 3,
-      sender: 'contact',
-      content: 'Betul. Saya sudah diskusi dengan suami, kami setuju dengan paketnya',
-      timestamp: '08:35',
-      type: 'text'
-    },
-    {
-      id: 4,
-      sender: 'agent',
-      content: 'Alhamdulillah! Berarti kita lanjut ke tahap survey lokasi ya Bu. Tim teknis perlu lihat kondisi rumah untuk perencanaan kabel.',
-      timestamp: '08:37',
-      type: 'text'
-    },
-    {
-      id: 5,
-      sender: 'contact',
-      content: 'Iya, kapan bisa? Saya prefer weekend karena weekday kerja',
-      timestamp: '08:40',
-      type: 'text'
-    },
-    {
-      id: 6,
-      sender: 'agent',
-      content: 'Weekend bisa Bu. Sabtu atau Minggu yang lebih cocok? Tim survey biasanya datang pagi sekitar jam 9.',
-      timestamp: '08:42',
-      type: 'text'
-    },
-    {
-      id: 7,
-      sender: 'contact',
-      content: 'Sabtu pagi cocok. Alamat sudah ada kan?',
-      timestamp: '08:45',
-      type: 'text'
-    },
-    {
-      id: 8,
-      sender: 'agent',
-      content: 'Sudah Bu, di Jl. Melati No. 15 Bintaro ya. Saya jadwalkan Sabtu jam 9 pagi. Nanti tim akan konfirmasi H-1.',
-      timestamp: '08:47',
-      type: 'text'
-    },
-    {
-      id: 9,
-      sender: 'contact',
-      content: 'Kapan bisa jadwal survey lokasi?',
-      timestamp: '08:50',
-      type: 'text'
-    }
-  ],
-  6: [
-    {
-      id: 1,
-      sender: 'contact',
-      content: 'Good morning, I need specifications for 16 channel DVR',
-      timestamp: '07:45',
-      type: 'text'
-    },
-    {
-      id: 2,
-      sender: 'agent',
-      content: 'Good morning! I\'ll be happy to provide DVR specifications. Are you looking for analog or hybrid DVR?',
-      timestamp: '07:47',
-      type: 'text'
-    },
-    {
-      id: 3,
-      sender: 'contact',
-      content: 'Hybrid would be better. Need to support both analog and IP cameras',
-      timestamp: '07:50',
-      type: 'text'
-    },
-    {
-      id: 4,
-      sender: 'agent',
-      content: 'Perfect! Our 16-channel hybrid DVR supports up to 16 analog + 2 IP cameras, 4K recording, 8TB storage, and remote viewing. Price is $450.',
-      timestamp: '07:52',
-      type: 'text'
-    },
-    {
-      id: 5,
-      sender: 'contact',
-      content: 'What about backup options and network connectivity?',
-      timestamp: '07:55',
-      type: 'text'
-    },
-    {
-      id: 6,
-      sender: 'agent',
-      content: 'It has USB backup, cloud backup option, Ethernet port, and WiFi capability. Also includes mobile app for remote monitoring.',
-      timestamp: '07:57',
-      type: 'text'
-    },
-    {
-      id: 7,
-      sender: 'contact',
-      content: 'Mohon info detail spesifikasi DVR 16 channel',
-      timestamp: '08:00',
-      type: 'text'
-    }
-  ]
+// Messages will be loaded from API based on selected conversation
+
+function MessageBubble({ message }) {
+  // Determine if message is from agent based on the 'to' field (agent's number)
+  const isAgent = message.from === '6285119746973' // Agent's number
+  
+  return (
+    <div className={`flex ${isAgent ? 'justify-end' : 'justify-start'}`}>
+      <div className={`max-w-[70%] rounded-lg px-4 py-2 shadow-sm ${
+        isAgent 
+          ? 'bg-blue-500 text-white' 
+          : 'bg-white text-gray-900 border'
+      }`}>
+        {message.type_content === 'chat' || !message.type_content ? (
+          <p className="text-sm leading-relaxed">{message.data}</p>
+        ) : message.type_content === 'image' ? (
+          <div>
+            <img src={message.media} alt="Shared image" className="rounded max-w-full h-auto" />
+            {message.data && <p className="text-sm mt-2">{message.data}</p>}
+          </div>
+        ) : message.type_content === 'document' || message.type_content === 'file' ? (
+          <div className="flex items-center space-x-2">
+            <FileText className="w-4 h-4" />
+            <span className="text-sm">{message.data || 'Document'}</span>
+          </div>
+        ) : (
+          <p className="text-sm leading-relaxed">{message.data}</p>
+        )}
+        
+        <p className={`text-xs mt-1 ${
+          isAgent ? 'text-white/70' : 'text-gray-500'
+        }`}>
+          {formatTimestamp(message.created_at || message.timestamp)}
+        </p>
+      </div>
+    </div>
+  )
 }
 
 function ContactItem({ contact, isSelected, onClick }) {
@@ -456,35 +107,34 @@ function ContactItem({ contact, isSelected, onClick }) {
       <div className="flex items-center gap-3">
         <div className="relative">
           <Avatar className="w-12 h-12">
-            <AvatarImage src={contact.avatar} alt={contact.name} />
-            <AvatarFallback>{contact.name.charAt(0)}</AvatarFallback>
+            <AvatarImage src={contact.avatar} alt={contact.name || contact.phone} />
+            <AvatarFallback>{(contact.name || contact.phone).charAt(0)}</AvatarFallback>
           </Avatar>
           {/* Status indicator */}
-          <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 ${getStatusColor(contact.status)} rounded-full border-2 border-white`}></div>
+          <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 ${getStatusColor(contact.is_online ? 'online' : 'offline')} rounded-full border-2 border-white`}></div>
         </div>
         
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
-              <h3 className="font-medium text-gray-900 truncate">{contact.name}</h3>
-              {getSourceIcon(contact.source)}
+              <h3 className="font-medium text-gray-900 truncate">{contact.name || contact.phone}</h3>
+              {getSourceIcon('whatsapp')}
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">{contact.timestamp}</span>
-              {contact.unreadCount > 0 && (
-                <Badge className="bg-crm-primary text-white text-xs px-2 py-0.5 min-w-0 h-5">
-                  {contact.unreadCount}
-                </Badge>
-              )}
+              <span className="text-xs text-gray-500">
+                {contact.created_at}
+              </span>
+
+             
             </div>
           </div>
-          <p className="text-sm text-gray-600 truncate">{contact.lastMessage}</p>
+          <p className="text-sm text-gray-600 truncate">{getMessagePreview(contact.last_message)}</p>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-xs text-gray-400">
-              {contact.source === 'whatsapp' ? contact.phone : contact.email}
+              {contact.phone}
             </span>
             <Badge variant="outline" className="text-xs px-1.5 py-0.5">
-              {contact.source === 'whatsapp' ? 'WhatsApp' : 'Tawk.to'}
+              WhatsApp
             </Badge>
           </div>
         </div>
@@ -493,31 +143,7 @@ function ContactItem({ contact, isSelected, onClick }) {
   )
 }
 
-function ChatArea({ selectedContact }) {
-  // Langsung ambil messages dari dummy data berdasarkan selectedContact
-  const messages = selectedContact ? (sampleMessages[selectedContact.id] || []) : []
-  const [newMessage, setNewMessage] = useState('')
-  const [chatMessages, setChatMessages] = useState(messages)
-
-  // Update chatMessages ketika selectedContact atau messages berubah
-  React.useEffect(() => {
-    setChatMessages(messages)
-  }, [selectedContact, messages])
-
-  const handleSendMessage = () => {
-    if (newMessage.trim()) {
-      const message = {
-        id: chatMessages.length + 1,
-        sender: 'agent',
-        content: newMessage,
-        timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-        type: 'text'
-      }
-      setChatMessages([...chatMessages, message])
-      setNewMessage('')
-    }
-  }
-
+function ChatArea({ messagesEndRef  ,selectedContact, messages, loadingMessages, sendingMessage, handleSendMessage, newMessage, setNewMessage }) {
   const getSourceBadge = (source) => {
     if (source === 'whatsapp') {
       return (
@@ -594,22 +220,29 @@ function ChatArea({ selectedContact }) {
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 bg-gray-50">
-        {chatMessages.map((message) => (
-          <div key={message.id} className={`flex ${message.sender === 'agent' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[70%] rounded-lg px-4 py-2 shadow-sm ${
-              message.sender === 'agent' 
-                ? 'bg-crm-primary text-white' 
-                : 'bg-white text-gray-900 border'
-            }`}>
-              <p className="text-sm leading-relaxed">{message.content}</p>
-              <p className={`text-xs mt-1 ${
-                message.sender === 'agent' ? 'text-white/70' : 'text-gray-500'
-              }`}>
-                {message.timestamp}
-              </p>
-            </div>
+        {!selectedContact ? (
+          <div className="flex items-center justify-center h-full text-gray-500">
+            <MessageSquare className="w-8 h-8 mr-2" />
+            <span>Pilih kontak untuk melihat percakapan</span>
           </div>
-        ))}
+        ) : loadingMessages ? (
+          <div className="flex items-center justify-center h-full">
+            <Loader2 className="w-6 h-6 animate-spin" />
+            <span className="ml-2">Loading messages...</span>
+          </div>
+        ) : messages.length > 0 ? (
+           <>
+             {messages.map((message, index) => (
+               <MessageBubble key={`${message.timestamp}-${index}`} message={message} />
+             ))}
+             <div ref={messagesEndRef} />
+           </>
+        ) : (
+           <div className="flex items-center justify-center h-full text-gray-500">
+             <MessageSquare className="w-8 h-8 mr-2" />
+             <span>Belum ada pesan dalam percakapan ini</span>
+           </div>
+        )}
       </div>
 
       {/* Input Area */}
@@ -622,15 +255,26 @@ function ChatArea({ selectedContact }) {
             placeholder="Ketik pesan..."
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            className="flex-1 border-gray-200 focus:border-crm-primary"
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                handleSendMessage()
+              }
+            }}
+            disabled={sendingMessage || !selectedContact}
+            className="flex-1 border-gray-200 focus:border-crm-primary disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <Button 
             size="sm" 
-            className="bg-crm-primary hover:bg-crm-primary-hover text-white"
+            className="bg-crm-primary hover:bg-crm-primary-hover text-white disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={handleSendMessage}
+            disabled={sendingMessage || (!newMessage.trim()) || !selectedContact}
           >
-            <Send className="h-4 w-4" />
+            {sendingMessage ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
           </Button>
         </div>
       </div>
@@ -642,16 +286,114 @@ export default function OmnichannelPage() {
   const [selectedContact, setSelectedContact] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterSource, setFilterSource] = useState('all')
+  const [chatContacts, setChatContacts] = useState([])
+  const [messages, setMessages] = useState([])
+  const [newMessage, setNewMessage] = useState('')
+  const [selectedFile, setSelectedFile] = useState(null)
+  const [filePreview, setFilePreview] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [loadingMessages, setLoadingMessages] = useState(false)
+  const [sendingMessage, setSendingMessage] = useState(false)
+  const messagesEndRef = useRef(null)
+
+  // Load chat list on component mount
+  useEffect(() => {
+    loadChatList()
+  }, [])
+
+  // Auto scroll to bottom when new messages arrive
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  const loadChatList = async () => {
+    try {
+      setLoading(true)
+      const response = await getChatList()
+      if (response.success) {
+        console.log('Chat list response:', response.data)
+        setChatContacts(Array.isArray(response.data) ? response.data : [])
+      } else {
+        setChatContacts([])
+      }
+    } catch (error) {
+      console.error('Error loading chat list:', error)
+      setChatContacts([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleContactSelect = async (contact) => {
+    try {
+      console.log('Selected contact data:', contact)
+      setSelectedContact(contact)
+      setLoadingMessages(true)
+      console.log('Using conversation ID:', contact.conversation_id)
+      const response = await loadConversation(contact.conversation_id)
+      if (response.success) {
+        setMessages(response.data.chats || [])
+      }
+    } catch (error) {
+      console.error('Error loading conversation:', error)
+      setMessages([])
+    } finally {
+      setLoadingMessages(false)
+    }
+  }
+
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() && !selectedFile) return
+    if (!selectedContact) return
+
+    try {
+      setSendingMessage(true)
+      const response = await sendMessage({
+        message: newMessage,
+        phone: selectedContact.phone,
+        file: selectedFile
+      })
+
+      if (response.success) {
+        // Add message to current conversation
+        const newMsg = {
+          id: Date.now(),
+          sender: 'agent',
+          content: newMessage,
+          timestamp: formatTimestamp(new Date()),
+          type: selectedFile ? 'file' : 'text'
+        }
+        setMessages(prev => [...prev, newMsg])
+        
+        // Clear input
+        setNewMessage('')
+        setSelectedFile(null)
+        setFilePreview(null)
+        
+        // Refresh chat list to update last message
+        loadChatList()
+      }
+    } catch (error) {
+      console.error('Error sending message:', error)
+      alert('Gagal mengirim pesan')
+    } finally {
+      setSendingMessage(false)
+    }
+  }
 
   // Filter contacts berdasarkan search dan source
-  const filteredContacts = chatContacts.filter(contact => {
-    const matchesSearch = contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         contact.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesSource = filterSource === 'all' || contact.source === filterSource
-    return matchesSearch && matchesSource
+  const filteredContacts = (Array.isArray(chatContacts) ? chatContacts : []).filter(contact => {
+    const matchesSearch = contact.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         contact.phone?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         getMessagePreview(contact.last_message)?.toLowerCase().includes(searchQuery.toLowerCase())
+    return matchesSearch
   })
 
-  const totalUnread = chatContacts.reduce((sum, contact) => sum + contact.unreadCount, 0)
+  const totalUnread = (Array.isArray(chatContacts) ? chatContacts : []).reduce((sum, contact) => sum + (contact.unread_count || 0), 0)
 
   return (
     <div className="h-full flex bg-white">
@@ -716,26 +458,39 @@ export default function OmnichannelPage() {
 
         {/* Contact List */}
         <div className="flex-1 overflow-y-auto">
-          {filteredContacts.length > 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center p-4">
+              <Loader2 className="w-6 h-6 animate-spin" />
+              <span className="ml-2">Loading chats...</span>
+            </div>
+          ) : filteredContacts.length > 0 ? (
             filteredContacts.map((contact) => (
               <ContactItem
                 key={contact.id}
                 contact={contact}
                 isSelected={selectedContact?.id === contact.id}
-                onClick={setSelectedContact}
+                onClick={() => handleContactSelect(contact)}
               />
             ))
           ) : (
             <div className="p-8 text-center">
               <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500">Tidak ada kontak ditemukan</p>
+              <p className="text-gray-500">{searchQuery ? 'No chats found' : 'No chats available'}</p>
             </div>
           )}
         </div>
       </div>
 
       {/* Right Panel - Chat Area */}
-      <ChatArea selectedContact={selectedContact} />
+      <ChatArea 
+        selectedContact={selectedContact} 
+        messages={messages} 
+        loadingMessages={loadingMessages}
+        sendingMessage={sendingMessage}
+        handleSendMessage={handleSendMessage}
+        newMessage={newMessage}
+        setNewMessage={setNewMessage}
+      />
     </div>
   )
 }

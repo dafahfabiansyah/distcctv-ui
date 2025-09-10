@@ -396,7 +396,7 @@ export default function OmnichannelPage() {
   const totalUnread = (Array.isArray(chatContacts) ? chatContacts : []).reduce((sum, contact) => sum + (contact.unread_count || 0), 0)
 
   return (
-    <div className="h-full flex bg-white">
+    <div className="flex bg-white  h-[calc(100vh-4rem)]">
       {/* Left Panel - Contact List */}
       <div className="w-80 border-r border-gray-200 flex flex-col">
         {/* Header */}

@@ -335,6 +335,7 @@ export default function PipelinePage() {
   // Fetch stages dari API
   const fetchStages = async () => {
     try {
+      console.time('fetchStages')
       console.log('Fetching stages for pipeline:', pipelineId)
       const response = await pipelineService.getStages(pipelineId)
       console.log('Stages API Response:', response)
@@ -350,10 +351,12 @@ export default function PipelinePage() {
         
         stagesFromAPI.sort((a, b) => a.position - b.position)
         console.log('Stages from API:', stagesFromAPI)
+        console.timeEnd('fetchStages')
         return stagesFromAPI
       }
     } catch (error) {
       console.error('Error fetching stages:', error)
+      console.timeEnd('fetchStages')
     }
     
     // Return empty array if no stages found
@@ -379,12 +382,15 @@ export default function PipelinePage() {
     }
   }
 
-  // Fetch data leads dari API
-  const fetchLeads = async () => {
+  // Fetch data leads dari API (tanpa fetch stages)
+  const fetchLeads = async (currentStages = stages) => {
     console.log('fetchLeads called with pipelineId:', pipelineId)
     console.log('fetchLeads called with filters:', filters)
     
     if (!pipelineId) {
+      console.log('No pipelineId provided')
+      setError('Pipeline ID is required')
+      setLoading(false)
       console.log('No pipelineId provided')
       setError('Pipeline ID is required')
       setLoading(false)
@@ -429,7 +435,7 @@ export default function PipelinePage() {
             company: lead.company || '',
             email: lead.email || '',
             phone: lead.phone,
-            stage: lead.lead_on_stage ? lead.lead_on_stage.stage_id : stagesData[0]?.id || null,
+            stage: lead.lead_on_stage ? lead.lead_on_stage.stage_id : currentStages[0]?.id || null,
             value: lead.amount || 0,
             source: lead.source_name || 'Unknown',
             lastActivity: lead.updated_at,
@@ -453,7 +459,7 @@ export default function PipelinePage() {
         console.log('Transformed leads:', transformedLeads)
         
         // Update stage counts
-        const updatedStages = stagesData.map(stage => ({
+        const updatedStages = currentStages.map(stage => ({
           ...stage,
           count: transformedLeads.filter(lead => lead.stage === stage.id).length
         }))
@@ -462,25 +468,31 @@ export default function PipelinePage() {
         
         setLeadsData(transformedLeads)
         setStages(updatedStages)
+        console.timeEnd('fetchLeads')
       }
     } catch (err) {
       console.error('Error fetching leads:', err)
+      console.timeEnd('fetchLeads')
       setError('Failed to fetch leads data')
     } finally {
       setLoading(false)
     }
   }
 
-  // Effect untuk fetch data ketika component mount atau pipelineId berubah
+  // Effect untuk fetch stages ketika pipelineId berubah
   useEffect(() => {
     fetchLeads()
     fetchSales() // Load sales data on component mount
   }, [pipelineId])
 
-  // Effect untuk fetch data ketika filter berubah
+  // Effect untuk fetch data ketika filter berubah dengan debouncing
   useEffect(() => {
-    if (pipelineId) {
-      fetchLeads()
+    if (pipelineId && !loading && stages.length > 0) {
+      const timeoutId = setTimeout(() => {
+        fetchLeads(stages)
+      }, 300) // 300ms debounce
+      
+      return () => clearTimeout(timeoutId)
     }
   }, [filters.dateFrom, filters.dateTo, filters.sales, filters.search])
 
@@ -504,6 +516,7 @@ export default function PipelinePage() {
     fetchQuotations(lead.id)
   }
 
+  const handleMoveLead = async (lead, targetStageId) => {
   const handleMoveLead = async (lead, targetStageId) => {
     // Jika sudah di stage yang sama, tidak perlu pindah
     if (lead.stage === targetStageId) return
@@ -1350,8 +1363,9 @@ export default function PipelinePage() {
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-4 text-gray-600">Loading pipeline data...</p>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-crm-primary mx-auto"></div>
+              <p className="mt-4 text-gray-600 font-medium">Loading pipeline data...</p>
+              <p className="mt-1 text-gray-400 text-sm">This may take a few seconds</p>
             </div>
           </div>
         ) : error ? (
@@ -1659,18 +1673,24 @@ export default function PipelinePage() {
                   <div className="flex items-start gap-4">
                     <Avatar className="h-12 w-12">
                       <AvatarImage src={selectedLead?.avatar || "/placeholder.svg"} />
+                      <AvatarImage src={selectedLead?.avatar || "/placeholder.svg"} />
                       <AvatarFallback>
                         {selectedLead?.name
                           ?.split(" ")
+                        {selectedLead?.name
+                          ?.split(" ")
                           .map((n) => n[0])
+                          .join("") || "?"}
                           .join("") || "?"}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
                       <h2 className="text-xl font-semibold text-gray-900">{selectedLead?.name || 'No Name'}</h2>
+                      <h2 className="text-xl font-semibold text-gray-900">{selectedLead?.name || 'No Name'}</h2>
                       <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
                         <div className="flex items-center gap-1">
                           <Phone className="h-4 w-4" />
+                          {selectedLead?.phone || 'No Phone'}
                           {selectedLead?.phone || 'No Phone'}
                         </div>
                       </div>
@@ -1776,12 +1796,16 @@ export default function PipelinePage() {
                               <div>
                                 <label className="text-sm font-medium text-gray-500">Company</label>
                                 <p className="text-sm text-black mt-1">{selectedLead?.company || 'No Company'}</p>
+                                <label className="text-sm font-medium text-gray-500">Company</label>
+                                <p className="text-sm text-black mt-1">{selectedLead?.company || 'No Company'}</p>
                               </div>
                               <div>
                                 <label className="text-sm font-medium text-gray-500">Value</label>
                                 <p className="text-sm text-black mt-1">Rp. {selectedLead?.value || 0}</p>
                               </div>
                               <div>
+                                <label className="text-sm font-medium text-gray-500">Priority</label>
+                                <p className="text-sm text-black mt-1">{selectedLead?.priority || 'Medium'}</p>
                                 <label className="text-sm font-medium text-gray-500">Priority</label>
                                 <p className="text-sm text-black mt-1">{selectedLead?.priority || 'Medium'}</p>
                               </div>

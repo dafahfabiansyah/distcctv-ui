@@ -12,6 +12,42 @@ const API_CONFIG = {
 // Create axios instance
 const api = axios.create(API_CONFIG)
 
+// Function to get CSRF token
+const getCsrfToken = async () => {
+  try {
+    const response = await axios.get(`${API_CONFIG.baseURL}/sanctum/csrf-cookie`, {
+      withCredentials: true
+    });
+    return response;
+  } catch (error) {
+    console.error('Error getting CSRF token:', error);
+    return null;
+  }
+};
+
+// Add request interceptor untuk menambahkan CSRF token
+api.interceptors.request.use(
+  async (config) => {
+    // Add CSRF token for POST, PUT, PATCH, DELETE requests
+    if (['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase())) {
+      // Get CSRF token from cookie or fetch it
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      if (csrfToken) {
+        config.headers['X-CSRF-TOKEN'] = csrfToken;
+      } else {
+        // Try to get CSRF token from Laravel Sanctum
+        await getCsrfToken();
+      }
+      config.withCredentials = true;
+    }
+    
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
 /**
  * Get bridge token dari backend untuk user yang sudah login via web session
  * @returns {Promise<Object>} Response dengan success status dan data/error

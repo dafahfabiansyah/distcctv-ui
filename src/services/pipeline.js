@@ -15,9 +15,22 @@ const api = axios.create({
   withCredentials: true // Tambahkan ini untuk support CORS credentials
 })
 
-// Add request interceptor untuk menambahkan bearer token
+// Function to get CSRF token
+const getCsrfToken = async () => {
+  try {
+    const response = await axios.get(`${API_CONFIG.baseURL}/sanctum/csrf-cookie`, {
+      withCredentials: true
+    });
+    return response;
+  } catch (error) {
+    console.error('Error getting CSRF token:', error);
+    return null;
+  }
+};
+
+// Add request interceptor untuk menambahkan bearer token dan CSRF token
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
     const token = localStorage.getItem('access_token')
     console.log('Using token:', token ? `${token.substring(0, 20)}...` : 'No token')
     if (token) {
@@ -64,6 +77,9 @@ class PipelineService {
    */
   async getLeads(pipelineId, params = {}) {
     try {
+      console.time('API_getLeads');
+      console.log('Fetching leads for pipeline:', pipelineId, 'with params:', params);
+      
       const response = await api.get(`/api/v2/crm/pipelines/${pipelineId}/leads`, {
         params: {
           date_from: params.date_from || params.dateFrom || '',
@@ -72,8 +88,12 @@ class PipelineService {
           search: params.search || ''
         }
       });
+      
+      console.timeEnd('API_getLeads');
+      console.log('Leads response size:', response.data?.data?.length || 0, 'items');
       return response.data;
     } catch (error) {
+      console.timeEnd('API_getLeads');
       console.error('Error fetching leads:', error);
       throw error;
     }
@@ -105,6 +125,7 @@ class PipelineService {
       const response = await api.put(`/api/v2/crm/leads/${leadId}/stage`, {
         stageId: stageId
       });
+      console.log('Update response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Error updating lead stage:', error);
@@ -166,9 +187,16 @@ class PipelineService {
    */
   async getStages(pipelineId) {
     try {
+      console.time('API_getStages');
+      console.log('Fetching stages for pipeline:', pipelineId);
+      
       const response = await api.get(`/api/v2/crm/pipelines/${pipelineId}/stages`);
+      
+      console.timeEnd('API_getStages');
+      console.log('Stages response size:', response.data?.data?.length || 0, 'items');
       return response.data;
     } catch (error) {
+      console.timeEnd('API_getStages');
       console.error('Error fetching stages:', error);
       throw error;
     }

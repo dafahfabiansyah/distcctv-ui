@@ -55,7 +55,7 @@ window.getBridgeToken = async () => {
 };
 
 // Get chat list with pagination
-export const getChatList = async (hasLoaded = []) => {
+export const getChatList = async (hasLoaded = [], source = 'all') => {
   try {
     const hasLoadedParam = hasLoaded.length > 0 ? hasLoaded.join(',') : '';
     let token = getAuthToken();
@@ -78,7 +78,16 @@ export const getChatList = async (hasLoaded = []) => {
       headers['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     }
     
-    const response = await fetch(`${API_BASE_URL}/chat-list?hasLoaded=${hasLoadedParam}`, {
+    // Build URL with source parameter
+    const url = new URL(`${API_BASE_URL}/chat-list`);
+    if (hasLoadedParam) {
+      url.searchParams.append('hasLoaded', hasLoadedParam);
+    }
+    if (source && source !== 'all') {
+      url.searchParams.append('source', source);
+    }
+    
+    const response = await fetch(url.toString(), {
       method: 'GET',
       headers
     });
@@ -94,11 +103,13 @@ export const getChatList = async (hasLoaded = []) => {
       conversation_id: item.conversation_id,
       name: item.name,
       phone: item.phone,
+      email: item.email,
       last_message: item.body,
       updated_at: item.created_at,
-      unread_count: 0, // Default value, can be updated based on API
-      is_online: false, // Default value
-      source: 'whatsapp' // Default source
+      created_at: item.created_at,
+      unread_count: item.unread_count || 0,
+      is_online: item.is_online || false,
+      source: item.source || 'whatsapp' // Use source from API response
     }));
     
     return {
@@ -142,10 +153,11 @@ export const loadConversation = async (conversationId, loadFromTimestamp = 0) =>
     }
     
     const data = await response.json();
+    console.log('Load conversation response:', data);
     return {
       success: true,
       data: {
-        chats: data.chats || data || []
+        chats: data.data?.chats || data.chats || []
       }
     };
   } catch (error) {

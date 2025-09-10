@@ -53,10 +53,20 @@ function MessageContent({ data }) {
 }
 
 function MessageBubble({ message, selectedContact }) {
-  // Determine if message is from client (customer) based on phone number comparison
-  // If message.from equals client phone, then it's from client (receiver - left side)
-  // If message.from is NOT client phone, then it's from agent (sender - right side)
-  const isFromClient = message.from === selectedContact?.phone;
+  // Determine if message is from client (customer) based on source and sender
+  let isFromClient = false;
+  
+  if (selectedContact?.source === 'whatsapp') {
+    // For WhatsApp: compare phone numbers
+    isFromClient = message.from === selectedContact?.phone;
+  } else if (selectedContact?.source === 'tawkto') {
+    // For Tawk.to: check if sender is 'visitor'
+    isFromClient = message.from === 'visitor';
+  } else {
+    // Default fallback
+    isFromClient = message.from === selectedContact?.phone;
+  }
+  
   const isAgent = !isFromClient; 
   
   return (
@@ -106,9 +116,21 @@ function ContactItem({ contact, isSelected, onClick }) {
           <MessageSquare className="w-2.5 h-2.5 text-white" />
         </div>
       )
-    } else {
+    } else if (source === 'tawkto') {
       return (
         <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+          <MessageSquare className="w-2.5 h-2.5 text-white" />
+        </div>
+      )
+    } else if (source === 'email') {
+      return (
+        <div className="w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+          <MessageSquare className="w-2.5 h-2.5 text-white" />
+        </div>
+      )
+    } else {
+      return (
+        <div className="w-4 h-4 bg-gray-500 rounded-full flex items-center justify-center">
           <MessageSquare className="w-2.5 h-2.5 text-white" />
         </div>
       )
@@ -145,7 +167,7 @@ function ContactItem({ contact, isSelected, onClick }) {
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
               <h3 className="font-medium text-gray-900 truncate">{contact.name || contact.phone}</h3>
-              {getSourceIcon('whatsapp')}
+              {getSourceIcon(contact.source)}
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-500">
@@ -161,7 +183,9 @@ function ContactItem({ contact, isSelected, onClick }) {
               {contact.phone}
             </span>
             <Badge variant="outline" className="text-xs px-1.5 py-0.5">
-              WhatsApp
+              {contact.source === 'whatsapp' ? 'WhatsApp' : 
+               contact.source === 'tawkto' ? 'Tawk.to' : 
+               contact.source === 'email' ? 'Email' : 'Unknown'}
             </Badge>
           </div>
         </div>
@@ -226,7 +250,7 @@ function ChatArea({ messagesEndRef  ,selectedContact, messages, loadingMessages,
                 {/* <span className="text-sm text-gray-500 capitalize">{selectedContact.status}</span> */}
                 {/* <span className="text-sm text-gray-400">•</span> */}
                 <span className="text-sm text-gray-500">
-                  {selectedContact.source === 'whatsapp' ? selectedContact.phone : selectedContact.email}
+                  {selectedContact.source === 'email' ? selectedContact.email : selectedContact.phone}
                 </span>
               </div>
             </div>
@@ -323,10 +347,10 @@ export default function OmnichannelPage() {
   const [sendingMessage, setSendingMessage] = useState(false)
   const messagesEndRef = useRef(null)
 
-  // Load chat list on component mount
+  // Load chat list on component mount and when filter changes
   useEffect(() => {
     loadChatList()
-  }, [])
+  }, [filterSource])
 
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
@@ -340,7 +364,7 @@ export default function OmnichannelPage() {
   const loadChatList = async () => {
     try {
       setLoading(true)
-      const response = await getChatList()
+      const response = await getChatList([], filterSource)
       if (response.success) {
         console.log('Chat list response:', response.data)
         setChatContacts(Array.isArray(response.data) ? response.data : [])
@@ -360,10 +384,17 @@ export default function OmnichannelPage() {
       console.log('Selected contact data:', contact)
       setSelectedContact(contact)
       setLoadingMessages(true)
+      setMessages([]) // Clear previous messages
       console.log('Using conversation ID:', contact.conversation_id)
       const response = await loadConversation(contact.conversation_id)
+      console.log('Load conversation response:', response)
       if (response.success) {
-        setMessages(response.data.chats || [])
+        const chats = response.data.chats || []
+        console.log('Setting messages:', chats)
+        setMessages(chats)
+      } else {
+        console.log('Failed to load conversation:', response)
+        setMessages([])
       }
     } catch (error) {
       console.error('Error loading conversation:', error)
@@ -416,8 +447,13 @@ export default function OmnichannelPage() {
   const filteredContacts = (Array.isArray(chatContacts) ? chatContacts : []).filter(contact => {
     const matchesSearch = contact.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          contact.phone?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         contact.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          getMessagePreview(contact.last_message)?.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesSearch
+    
+    // Filter by source is now handled by the API, but we can add client-side filtering as backup
+    const matchesSource = filterSource === 'all' || contact.source === filterSource
+    
+    return matchesSearch && matchesSource
   })
 
   const totalUnread = (Array.isArray(chatContacts) ? chatContacts : []).reduce((sum, contact) => sum + (contact.unread_count || 0), 0)

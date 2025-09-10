@@ -398,10 +398,13 @@ export default function PipelinePage() {
     setError(null)
     
     try {
-      // Fetch stages first if not provided or empty
-      let stagesData = currentStages
-      if (!currentStages || currentStages.length === 0) {
-        stagesData = await fetchStages()
+      // Always fetch stages first to ensure they are available
+      let stagesData = await fetchStages()
+      if (stagesData && stagesData.length > 0) {
+        setStages(stagesData)
+      } else {
+        // If no stages found, still set empty array to prevent rendering issues
+        stagesData = []
         setStages(stagesData)
       }
       
@@ -461,16 +464,19 @@ export default function PipelinePage() {
       
       console.log('Transformed leads:', transformedLeads)
       
-      // Update stage counts - always update stages even if no leads
-      const updatedStages = stagesData.map(stage => ({
-        ...stage,
-        count: transformedLeads.filter(lead => lead.stage === stage.id).length
-      }))
-      
-      console.log('Updated stages with counts:', updatedStages)
-      
+      // Always set leads data, even if empty
       setLeadsData(transformedLeads)
-      setStages(updatedStages)
+      
+      // Update stage counts - always update stages even if no leads
+      if (stagesData && stagesData.length > 0) {
+        const updatedStages = stagesData.map(stage => ({
+          ...stage,
+          count: transformedLeads.filter(lead => lead.stage === stage.id).length
+        }))
+        
+        console.log('Updated stages with counts:', updatedStages)
+        setStages(updatedStages)
+      }
       console.timeEnd('fetchLeads')
     } catch (err) {
       console.error('Error fetching leads:', err)
@@ -489,7 +495,7 @@ export default function PipelinePage() {
 
   // Effect untuk fetch data ketika filter berubah dengan debouncing
   useEffect(() => {
-    if (pipelineId && !loading && stages.length > 0) {
+    if (pipelineId && !loading) {
       const timeoutId = setTimeout(() => {
         fetchLeads(stages)
       }, 300) // 300ms debounce

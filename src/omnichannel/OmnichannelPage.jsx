@@ -366,7 +366,7 @@ export default function OmnichannelPage() {
       setLoading(true)
       const response = await getChatList([], filterSource)
       if (response.success) {
-        console.log('Chat list response:', response.data)
+        // console.log('Chat list response:', response.data)
         setChatContacts(Array.isArray(response.data) ? response.data : [])
       } else {
         setChatContacts([])
@@ -381,19 +381,21 @@ export default function OmnichannelPage() {
 
   const handleContactSelect = async (contact) => {
     try {
-      console.log('Selected contact data:', contact)
+      // console.log('Selected contact data:', contact)
       setSelectedContact(contact)
       setLoadingMessages(true)
       setMessages([]) // Clear previous messages
-      console.log('Using conversation ID:', contact.conversation_id)
-      const response = await loadConversation(contact.conversation_id)
-      console.log('Load conversation response:', response)
+      // Use 'id' for Tawk.to (which has prefix) or 'conversation_id' for WhatsApp
+      const conversationId = contact.source === 'tawkto' ? contact.id : contact.conversation_id
+      // console.log('Using conversation ID:', conversationId)
+      const response = await loadConversation(conversationId)
+      // console.log('Load conversation response:', response)
       if (response.success) {
         const chats = response.data.chats || []
-        console.log('Setting messages:', chats)
+        // console.log('Setting messages:', chats)
         setMessages(chats)
       } else {
-        console.log('Failed to load conversation:', response)
+        // console.log('Failed to load conversation:', response)
         setMessages([])
       }
     } catch (error) {

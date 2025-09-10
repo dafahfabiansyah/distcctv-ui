@@ -14,17 +14,17 @@ export default function Topbar() {
     // Safely get user data from localStorage
     try {
       const userDataString = localStorage.getItem('user')
-      console.log('User data from localStorage:', userDataString)
+     // console.log('User data from localStorage:', userDataString)
       
       if (userDataString) {
         const userData = JSON.parse(userDataString)
-        console.log('Parsed user data:', userData)
+       // console.log('Parsed user data:', userData)
         setUserName(userData.name || "User")
         setUserEmail(userData.email || "")
       } else {
         // Fallback: try to get name directly if stored separately
         const directName = localStorage.getItem('user.name')
-        console.log('Direct name from localStorage:', directName)
+       // console.log('Direct name from localStorage:', directName)
         setUserName(directName || "User")
       }
     } catch (error) {

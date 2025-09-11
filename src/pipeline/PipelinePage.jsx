@@ -335,7 +335,6 @@ export default function PipelinePage() {
   // Fetch stages dari API
   const fetchStages = async () => {
     try {
-      console.time('fetchStages')
       console.log('Fetching stages for pipeline:', pipelineId)
       const response = await pipelineService.getStages(pipelineId)
       console.log('Stages API Response:', response)
@@ -351,12 +350,10 @@ export default function PipelinePage() {
         
         stagesFromAPI.sort((a, b) => a.position - b.position)
         console.log('Stages from API:', stagesFromAPI)
-        console.timeEnd('fetchStages')
         return stagesFromAPI
       }
     } catch (error) {
       console.error('Error fetching stages:', error)
-      console.timeEnd('fetchStages')
     }
     
     // Return empty array if no stages found
@@ -382,8 +379,8 @@ export default function PipelinePage() {
     }
   }
 
-  // Fetch data leads dari API (tanpa fetch stages)
-  const fetchLeads = async (currentStages = stages) => {
+  // Fetch data leads dari API
+  const fetchLeads = async () => {
     console.log('fetchLeads called with pipelineId:', pipelineId)
     console.log('fetchLeads called with filters:', filters)
     
@@ -398,15 +395,9 @@ export default function PipelinePage() {
     setError(null)
     
     try {
-      // Always fetch stages first to ensure they are available
-      let stagesData = await fetchStages()
-      if (stagesData && stagesData.length > 0) {
-        setStages(stagesData)
-      } else {
-        // If no stages found, still set empty array to prevent rendering issues
-        stagesData = []
-        setStages(stagesData)
-      }
+      // Fetch stages first
+      const stagesData = await fetchStages()
+      setStages(stagesData)
       
       // Prepare query parameters for API call
       const queryParams = {
@@ -424,9 +415,9 @@ export default function PipelinePage() {
       console.log('API Response:', response)
       
       // Transform data sesuai struktur yang diharapkan komponen
-      const transformedLeads = []
-      
       if (response && Array.isArray(response)) {
+        const transformedLeads = []
+        
         console.log('Found leads array in response:', response.length, 'leads')
         
         // Transform leads data
@@ -458,49 +449,38 @@ export default function PipelinePage() {
             score_reason: lead.lead_opportunity_reason || ''
           })
         })
-      } else {
-        console.log('No leads found in response or response is not an array')
-      }
-      
-      console.log('Transformed leads:', transformedLeads)
-      
-      // Always set leads data, even if empty
-      setLeadsData(transformedLeads)
-      
-      // Update stage counts - always update stages even if no leads
-      if (stagesData && stagesData.length > 0) {
+        
+        console.log('Transformed leads:', transformedLeads)
+        
+        // Update stage counts
         const updatedStages = stagesData.map(stage => ({
           ...stage,
           count: transformedLeads.filter(lead => lead.stage === stage.id).length
         }))
         
         console.log('Updated stages with counts:', updatedStages)
+        
+        setLeadsData(transformedLeads)
         setStages(updatedStages)
       }
-      console.timeEnd('fetchLeads')
     } catch (err) {
       console.error('Error fetching leads:', err)
-      console.timeEnd('fetchLeads')
       setError('Failed to fetch leads data')
     } finally {
       setLoading(false)
     }
   }
 
-  // Effect untuk fetch stages ketika pipelineId berubah
+  // Effect untuk fetch data ketika component mount atau pipelineId berubah
   useEffect(() => {
     fetchLeads()
     fetchSales() // Load sales data on component mount
   }, [pipelineId])
 
-  // Effect untuk fetch data ketika filter berubah dengan debouncing
+  // Effect untuk fetch data ketika filter berubah
   useEffect(() => {
-    if (pipelineId && !loading) {
-      const timeoutId = setTimeout(() => {
-        fetchLeads(stages)
-      }, 300) // 300ms debounce
-      
-      return () => clearTimeout(timeoutId)
+    if (pipelineId) {
+      fetchLeads()
     }
   }, [filters.dateFrom, filters.dateTo, filters.sales, filters.search])
 
@@ -524,7 +504,6 @@ export default function PipelinePage() {
     fetchQuotations(lead.id)
   }
 
-  const handleMoveLead = async (lead, targetStageId) => {
   const handleMoveLead = async (lead, targetStageId) => {
     // Jika sudah di stage yang sama, tidak perlu pindah
     if (lead.stage === targetStageId) return
@@ -1371,9 +1350,8 @@ export default function PipelinePage() {
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-crm-primary mx-auto"></div>
-              <p className="mt-4 text-gray-600 font-medium">Loading pipeline data...</p>
-              <p className="mt-1 text-gray-400 text-sm">This may take a few seconds</p>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Loading pipeline data...</p>
             </div>
           </div>
         ) : error ? (
@@ -1382,15 +1360,6 @@ export default function PipelinePage() {
               <p className="text-red-600 mb-4">{error}</p>
               <Button onClick={fetchLeads} variant="outline">
                 Retry
-              </Button>
-            </div>
-          </div>
-        ) : stages.length === 0 ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <p className="text-gray-600 mb-4">No pipeline stages found</p>
-              <Button onClick={fetchLeads} variant="outline">
-                Refresh
               </Button>
             </div>
           </div>
@@ -1690,23 +1659,18 @@ export default function PipelinePage() {
                   <div className="flex items-start gap-4">
                     <Avatar className="h-12 w-12">
                       <AvatarImage src={selectedLead?.avatar || "/placeholder.svg"} />
-                      <AvatarImage src={selectedLead?.avatar || "/placeholder.svg"} />
                       <AvatarFallback>
-                        
                         {selectedLead?.name
                           ?.split(" ")
                           .map((n) => n[0])
                           .join("") || "?"}
-                          
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
                       <h2 className="text-xl font-semibold text-gray-900">{selectedLead?.name || 'No Name'}</h2>
-                      <h2 className="text-xl font-semibold text-gray-900">{selectedLead?.name || 'No Name'}</h2>
                       <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
                         <div className="flex items-center gap-1">
                           <Phone className="h-4 w-4" />
-                          {selectedLead?.phone || 'No Phone'}
                           {selectedLead?.phone || 'No Phone'}
                         </div>
                       </div>
@@ -1812,16 +1776,12 @@ export default function PipelinePage() {
                               <div>
                                 <label className="text-sm font-medium text-gray-500">Company</label>
                                 <p className="text-sm text-black mt-1">{selectedLead?.company || 'No Company'}</p>
-                                <label className="text-sm font-medium text-gray-500">Company</label>
-                                <p className="text-sm text-black mt-1">{selectedLead?.company || 'No Company'}</p>
                               </div>
                               <div>
                                 <label className="text-sm font-medium text-gray-500">Value</label>
                                 <p className="text-sm text-black mt-1">Rp. {selectedLead?.value || 0}</p>
                               </div>
                               <div>
-                                <label className="text-sm font-medium text-gray-500">Priority</label>
-                                <p className="text-sm text-black mt-1">{selectedLead?.priority || 'Medium'}</p>
                                 <label className="text-sm font-medium text-gray-500">Priority</label>
                                 <p className="text-sm text-black mt-1">{selectedLead?.priority || 'Medium'}</p>
                               </div>
@@ -3046,5 +3006,4 @@ export default function PipelinePage() {
         </div>
       </DndProvider>
   )
-}
 }

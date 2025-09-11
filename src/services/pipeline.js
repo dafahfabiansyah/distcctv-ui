@@ -15,20 +15,10 @@ const api = axios.create({
   withCredentials: true // Tambahkan ini untuk support CORS credentials
 })
 
-// Function to get CSRF token
-const getCsrfToken = async () => {
-  try {
-    const response = await axios.get(`${API_CONFIG.baseURL}/sanctum/csrf-cookie`, {
-      withCredentials: true
-    });
-    return response;
-  } catch (error) {
-    console.error('Error getting CSRF token:', error);
-    return null;
-  }
-};
+// Note: Passport doesn't require CSRF tokens like Sanctum did
+// Authentication is handled via Bearer tokens only
 
-// Add request interceptor untuk menambahkan bearer token dan CSRF token
+// Add request interceptor untuk menambahkan bearer token
 api.interceptors.request.use(
   async (config) => {
     const token = localStorage.getItem('access_token')
@@ -134,7 +124,7 @@ class PipelineService {
   }
 
   /**
-   * Update data lead lengkap (semua field) - menggunakan Sanctum API
+   * Update data lead lengkap (semua field) - menggunakan Passport API
    * @param {string|number} leadId - ID lead
    * @param {Object} leadData - Data lead yang akan diupdate
    * @returns {Promise} Response dari API
@@ -149,7 +139,7 @@ class PipelineService {
         }
       });
 
-      // Menggunakan endpoint Sanctum yang tidak memerlukan CSRF token
+      // Menggunakan endpoint Passport yang tidak memerlukan CSRF token
       const response = await api.put(`/api/v2/crm/lead/update/${leadId}`, formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
@@ -208,7 +198,7 @@ class PipelineService {
    * @returns {Promise} Response dari API
    */
   /**
-   * Mengambil quotations untuk lead tertentu (menggunakan Sanctum API)
+   * Mengambil quotations untuk lead tertentu (menggunakan Passport API)
    * @param {string|number} leadId - ID lead
    * @returns {Promise} Response dari API
    */
@@ -223,7 +213,7 @@ class PipelineService {
   }
 
   /**
-   * Buat quotation baru (menggunakan Sanctum API)
+   * Buat quotation baru (menggunakan Passport API)
    * @param {string|number} leadId - ID lead
    * @param {FormData|Object} quotationData - Data quotation
    * @returns {Promise} Response dari API
@@ -239,7 +229,7 @@ class PipelineService {
   }
 
   /**
-   * Update quotation (menggunakan Sanctum API)
+   * Update quotation (menggunakan Passport API)
    * @param {string|number} quotationId - ID quotation
    * @param {FormData|Object} quotationData - Data quotation yang diupdate
    * @returns {Promise} Response dari API
@@ -261,7 +251,7 @@ class PipelineService {
   }
 
   /**
-   * Mengambil detail quotation berdasarkan ID (menggunakan Sanctum API)
+   * Mengambil detail quotation berdasarkan ID (menggunakan Passport API)
    * @param {string|number} quotationId - ID quotation
    * @returns {Promise} Response dari API
    */
@@ -276,7 +266,7 @@ class PipelineService {
   }
 
   /**
-   * Hapus quotation (menggunakan Sanctum API)
+   * Hapus quotation (menggunakan Passport API)
    * @param {string|number} quotationId - ID quotation
    * @returns {Promise} Response dari API
    */
@@ -291,7 +281,7 @@ class PipelineService {
   }
 
   /**
-   * Pool quotation amount to main lead (menggunakan Sanctum API)
+   * Pool quotation amount to main lead (menggunakan Passport API)
    * @param {string|number} quotationId - ID quotation
    * @returns {Promise} Response dari API
    */
@@ -431,7 +421,7 @@ class PipelineService {
   }
 
   /**
-   * Kirim pesan WhatsApp ke lead (menggunakan Sanctum API)
+   * Kirim pesan WhatsApp ke lead (menggunakan Passport API)
    * @param {string|number} leadId - ID lead
    * @param {string} message - Pesan yang akan dikirim
    * @param {File|null} file - File attachment (opsional)
@@ -462,7 +452,7 @@ class PipelineService {
       }
 
       // Debug log
-      console.log('Sending WhatsApp message via Sanctum API:', {
+      console.log('Sending WhatsApp message via Passport API:', {
         leadId,
         message: message || '(empty message)',
         hasFile: !!file,
@@ -470,7 +460,7 @@ class PipelineService {
         endpoint: `/api/v2/whatsapp/send/${leadId}`
       });
 
-      // Kirim ke endpoint Sanctum API
+      // Kirim ke endpoint Passport API
       const response = await api.post(`/api/v2/whatsapp/send/${leadId}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -529,7 +519,7 @@ class PipelineService {
       formData.append('tagto', activityData.tag || ''); // Sesuai dengan name di form lama
       formData.append('comment', activityData.comment);
 
-      // Gunakan endpoint Sanctum yang menggunakan controller lama
+      // Gunakan endpoint Passport yang menggunakan controller lama
       const response = await api.post(`/api/v2/crm/lead/${leadId}/comment`, formData);
 
       return response.data;

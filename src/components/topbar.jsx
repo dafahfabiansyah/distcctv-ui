@@ -10,6 +10,18 @@ import { useAuth } from "../contexts/AuthContext"
 export default function Topbar() {
   const [userName, setUserName] = useState("")
   const [userEmail, setUserEmail] = useState("")
+  const { token } = useAuth()
+
+  // Fungsi untuk handle klik QR Code
+  const handleQrCodeClick = () => {
+    // Redirect ke route Laravel auth.whatsapp seperti di top-nav.blade.php
+    // Gunakan Laravel server URL, bukan Vite dev server
+    const laravelBaseUrl = 'http://localhost:8000'
+    const whatsappAuthUrl = `${laravelBaseUrl}/auth/whatsapp`
+    
+    // Buka di tab baru seperti di top-nav.blade.php
+    window.open(whatsappAuthUrl, '_blank', 'noopener,noreferrer')
+  }
 
   useEffect(() => {
     // Safely get user data from localStorage
@@ -54,8 +66,8 @@ export default function Topbar() {
         </Button>
 
         {/* Settings */}
-        <Button variant="ghost" size="sm"  title="Scan QR Code"
-          aria-label="QR Code Scanner">
+        <Button variant="ghost" size="sm" title="Scan QR Code"
+          aria-label="QR Code Scanner" onClick={handleQrCodeClick}>
           <QrCode className="h-5 w-5 text-black" />
         </Button>
 

@@ -540,6 +540,31 @@ class PipelineService {
   }
 
   /**
+   * Membuat lead baru
+   * @param {number} pipelineId - ID pipeline
+   * @param {Object} leadData - Data lead (name, phone, source, sales_id)
+   * @returns {Promise} Response dari API
+   */
+  async createLead(pipelineId, leadData) {
+    try {
+      console.log('Creating lead for pipeline:', pipelineId, 'with data:', leadData);
+      
+      // Tambahkan pipeline_id ke data yang dikirim
+      const dataWithPipeline = {
+        ...leadData,
+        pipeline_id: pipelineId
+      };
+      
+      const response = await api.post('/api/v2/crm/lead/store', dataWithPipeline);
+      console.log('Create lead response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating lead:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Mengambil data sales untuk dropdown filter
    * @returns {Promise} Response dari API
    */

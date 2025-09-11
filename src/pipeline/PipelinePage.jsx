@@ -296,6 +296,16 @@ export default function PipelinePage() {
   const [emailAttachments, setEmailAttachments] = useState([])
   const [sendingEmail, setSendingEmail] = useState(false)
 
+  // Add Lead modal states
+  const [showAddLeadModal, setShowAddLeadModal] = useState(false)
+  const [addLeadForm, setAddLeadForm] = useState({
+    name: '',
+    phone: '',
+    source: '',
+    sales_id: ''
+  })
+  const [isCreatingLead, setIsCreatingLead] = useState(false)
+
   // Batch Chat Status - fetch semua chat status sekaligus
   const { data: batchChatStatus, isLoading: isLoadingChatStatus, error: chatStatusError } = useBatchChatStatus(leadsData)
   
@@ -1190,6 +1200,45 @@ export default function PipelinePage() {
     setIsDragging(false)
   }, [])
 
+  // Add Lead submit handler
+  const handleAddLeadSubmit = async (e) => {
+    e.preventDefault()
+    
+    // Validate form
+    if (!addLeadForm.name || !addLeadForm.phone || !addLeadForm.source) {
+      alert('Please fill in all required fields')
+      return
+    }
+
+    setIsCreatingLead(true)
+    
+    try {
+      console.log('Submitting lead data:', addLeadForm)
+      const response = await pipelineService.createLead(pipelineId, addLeadForm)
+      
+      if (response && response.success) {
+        console.log('Lead created successfully:', response.data)
+        
+        // Close modal and reset form
+        setShowAddLeadModal(false)
+        setAddLeadForm({ name: '', phone: '', source: '', sales_id: '' })
+        
+        // Refresh leads data
+        await fetchLeads()
+        
+        alert('Lead berhasil ditambahkan!')
+      } else {
+        console.error('Failed to create lead:', response)
+        alert('Gagal menambahkan lead. Silakan coba lagi.')
+      }
+    } catch (error) {
+      console.error('Error creating lead:', error)
+      alert('Terjadi kesalahan saat menambahkan lead. Silakan coba lagi.')
+    } finally {
+      setIsCreatingLead(false)
+    }
+  }
+
   const handleContextMenu = (e) => {
     // Prevent context menu when right-clicking for drag
     e.preventDefault()
@@ -1228,7 +1277,10 @@ export default function PipelinePage() {
                 </div>
               )}
             </div>
-            <Button className="bg-crm-primary hover:bg-crm-primary-hover text-white">
+            <Button 
+              className="bg-crm-primary hover:bg-crm-primary-hover text-white"
+              onClick={() => setShowAddLeadModal(true)}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Add Lead
             </Button>
@@ -3003,6 +3055,111 @@ export default function PipelinePage() {
             </div>
           </div>
         )}
+
+        {/* Add Lead Modal */}
+        <Dialog open={showAddLeadModal} onOpenChange={setShowAddLeadModal}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Add New Lead</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleAddLeadSubmit} className="space-y-4">
+              <div className="grid gap-4 py-4">
+                {/* Name Field */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <label htmlFor="leadName" className="text-right text-sm font-medium">
+                    Name
+                  </label>
+                  <Input
+                    id="leadName"
+                    value={addLeadForm.name}
+                    onChange={(e) => setAddLeadForm(prev => ({ ...prev, name: e.target.value }))}
+                    className="col-span-3"
+                    placeholder="Enter lead name"
+                    required
+                  />
+                </div>
+
+                {/* Phone Field */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <label htmlFor="leadPhone" className="text-right text-sm font-medium">
+                    Phone
+                  </label>
+                  <Input
+                    id="leadPhone"
+                    value={addLeadForm.phone}
+                    onChange={(e) => setAddLeadForm(prev => ({ ...prev, phone: e.target.value }))}
+                    className="col-span-3"
+                    placeholder="Enter phone number"
+                    required
+                  />
+                </div>
+
+                {/* Source Field */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <label htmlFor="leadSource" className="text-right text-sm font-medium">
+                    Source
+                  </label>
+                  <Select
+                    value={addLeadForm.source}
+                    onValueChange={(value) => setAddLeadForm(prev => ({ ...prev, source: value }))}
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                      <SelectItem value="email">Email</SelectItem>
+                      <SelectItem value="personal_contact">Personal Contact</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Sales Field */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <label htmlFor="leadSales" className="text-right text-sm font-medium">
+                    Sales
+                  </label>
+                  <Select
+                    value={addLeadForm.sales_id}
+                    onValueChange={(value) => setAddLeadForm(prev => ({ ...prev, sales_id: value }))}
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select sales" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {salesData.map((sales) => (
+                        <SelectItem key={sales.id} value={sales.id.toString()}>
+                          {sales.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowAddLeadModal(false)
+                    setAddLeadForm({ name: '', phone: '', source: '', sales_id: '' })
+                  }}
+                  disabled={isCreatingLead}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-crm-primary hover:bg-crm-primary-hover text-white"
+                  disabled={isCreatingLead}
+                >
+                  {isCreatingLead ? 'Creating...' : 'Add Lead'}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
         </div>
       </DndProvider>
   )

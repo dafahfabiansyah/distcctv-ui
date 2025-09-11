@@ -1294,12 +1294,12 @@ export default function PipelinePage() {
               value={filters.search}
               onChange={handleSearchChange}
             />
-             <Button variant="outline" className="text-black bg-transparent">
+             {/* <Button variant="outline" className="text-black bg-transparent">
               Export Report
             </Button>
              <Button variant="outline" className="text-black bg-transparent">
               Export Recap
-            </Button>
+            </Button> */}
             <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="text-gray-600 bg-transparent">

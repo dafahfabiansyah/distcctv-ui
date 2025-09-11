@@ -58,12 +58,12 @@ export default function Topbar() {
       {/* Right side */}
       <div className="flex items-center gap-4">
         {/* Notifications */}
-        <Button variant="ghost" size="sm" className="relative">
+        {/* <Button variant="ghost" size="sm" className="relative">
           <Bell className="h-5 w-5 text-black" />
           <Badge className="absolute -top-1 -right-1 bg-crm-badge-high text-white text-xs px-1.5 py-0.5 min-w-0 h-5">
             3
           </Badge>
-        </Button>
+        </Button> */}
 
         {/* Settings */}
         <Button variant="ghost" size="sm" title="Scan QR Code"

@@ -140,11 +140,22 @@ export const exchangeBridgeToken = async (bridgeToken) => {
  * @param {string} apiToken - API token yang akan diverifikasi (optional, akan ambil dari localStorage jika tidak ada)
  * @returns {Promise<Object>} Response dengan success status dan data/error
  */
+/**
+ * Verify API token dengan improved error handling dan caching
+ * @param {string} apiToken - API token to verify (optional, akan ambil dari localStorage jika tidak ada)
+ * @returns {Promise<Object>} Response dengan success status dan data/error
+ */
 export const verifyToken = async (apiToken = null) => {
   try {
     const token = apiToken || localStorage.getItem('access_token')
     if (!token) {
-      throw new Error('No token found')
+      return {
+        success: false,
+        error: {
+          message: 'No token found',
+          isAuthError: true
+        }
+      }
     }
     
     const response = await api.get('/api/auth/verify', {
@@ -159,15 +170,23 @@ export const verifyToken = async (apiToken = null) => {
       data: response.data
     }
   } catch (error) {
+    const errorMessage = error.response?.data?.message || error.message
+    const statusCode = error.response?.status
+    
     console.error('Verify Token Error:', {
-      message: error.response?.data?.message || error.message,
-      status: error.response?.status,
+      message: errorMessage,
+      status: statusCode,
       endpoint: '/api/auth/verify'
     })
     
     return {
       success: false,
-      error: error.response?.data || error.message
+      error: {
+        message: errorMessage,
+        status: statusCode,
+        isAuthError: statusCode === 401 || statusCode === 403,
+        isServerError: statusCode >= 500
+      }
     }
   }
 }

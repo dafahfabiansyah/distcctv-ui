@@ -105,13 +105,7 @@ const LoginPage = () => {
           </CardContent>
         </Card>
         
-        {/* <div className="text-center text-sm text-gray-600">
-          <p>For testing purposes, use:</p>
-          <p className="font-mono text-xs mt-1">
-            Email: wahyu@if-kom.com<br />
-            Password: 12341234
-          </p>
-        </div> */}
+       
       </div>
     </div>
   )

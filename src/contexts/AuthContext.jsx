@@ -1,6 +1,7 @@
 import { useState, useEffect, createContext, useContext } from 'react'
 import { getBridgeToken, exchangeBridgeToken } from '../api/auth'
 import { getBridgeTokenDirect, verifyToken } from '../services/auth'
+import { isTokenRecentlyVerified, setTokenVerified, clearTokenCache } from '../utils/tokenCache'
 
 const AuthContext = createContext()
 
@@ -29,6 +30,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem('user', JSON.stringify(userData))
             setToken(apiToken)
             setUser(userData)
+            setTokenVerified() // Mark token as recently verified
             
             // Hapus bridge token dari URL
             window.history.replaceState({}, document.title, window.location.pathname)
@@ -51,27 +53,52 @@ export const AuthProvider = ({ children }) => {
         setToken(savedToken)
         setUser(JSON.parse(savedUser))
         
-        // Verify token masih valid
+        // Skip verification if token was recently verified
+        if (isTokenRecentlyVerified()) {
+          console.log('Token recently verified, skipping verification')
+          setLoading(false)
+          return
+        }
+        
+        // Only verify token if it hasn't been verified recently
         try {
+          console.log('Verifying token...')
           const result = await verifyToken(savedToken)
           if (result.success) {
-            setUser(result.data.user)
+            // Update user data if verification returns user info
+            if (result.data && result.data.user) {
+              setUser(result.data.user)
+              localStorage.setItem('user', JSON.stringify(result.data.user))
+            }
+            setTokenVerified() // Mark token as recently verified
             console.log('Token verified successfully')
           } else {
             // Token invalid, hapus dari localStorage
             console.log('Token invalid, clearing storage')
             localStorage.removeItem('access_token')
             localStorage.removeItem('user')
+            clearTokenCache()
             setToken(null)
             setUser(null)
           }
         } catch (error) {
-          // Token verification failed, hapus dari localStorage
+          // Token verification failed, but don't immediately clear if it's a server error
           console.log('Token verification failed:', error)
-          localStorage.removeItem('access_token')
-          localStorage.removeItem('user')
-          setToken(null)
-          setUser(null)
+          
+          // Only clear token if it's a 401/403 error (unauthorized)
+          if (error.error && error.error.isAuthError) {
+            localStorage.removeItem('access_token')
+            localStorage.removeItem('user')
+            clearTokenCache()
+            setToken(null)
+            setUser(null)
+          } else if (error.error && error.error.isServerError) {
+            // For server errors (500, etc.), keep the token but don't cache verification
+            console.log('Server error during verification, keeping token but not caching')
+          } else {
+            // For other errors, also keep the token but log the issue
+            console.log('Unknown error during verification, keeping token but not caching')
+          }
         }
       }
       
@@ -97,6 +124,7 @@ export const AuthProvider = ({ children }) => {
           localStorage.setItem('user', JSON.stringify(userData))
           setToken(apiToken)
           setUser(userData)
+          setTokenVerified() // Mark token as recently verified after successful login
           
           return {
             success: true,
@@ -125,6 +153,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       localStorage.removeItem('access_token')
       localStorage.removeItem('user')
+      clearTokenCache() // Clear token verification cache on logout
       setToken(null)
       setUser(null)
     }

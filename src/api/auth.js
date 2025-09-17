@@ -76,7 +76,7 @@ export const exchangeBridgeToken = async (bridgeToken) => {
 };
 
 /**
- * Verify API token
+ * Verify API token with improved error handling
  * @param {string} apiToken - API token to verify
  * @returns {Promise<Object>} Verification response data
  * @throws {Error} When request fails
@@ -89,7 +89,10 @@ export const verifyApiToken = async (apiToken) => {
         'Content-Type': 'application/json'
       }
     });
-    return response.data;
+    return {
+      success: true,
+      data: response.data
+    };
   } catch (error) {
     const errorMessage = error.response?.data?.message || error.message || 'Failed to verify token';
     const statusCode = error.response?.status;
@@ -100,7 +103,15 @@ export const verifyApiToken = async (apiToken) => {
       endpoint: ENDPOINTS.VERIFY_TOKEN,
     });
     
-    throw new Error(`Verify Token Request Failed: ${errorMessage}`);
+    // Return structured error response instead of throwing
+    return {
+      success: false,
+      error: {
+        message: errorMessage,
+        status: statusCode,
+        isAuthError: statusCode === 401 || statusCode === 403
+      }
+    };
   }
 };
 

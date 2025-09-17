@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Phone, Clock, Plus, MoreHorizontal, Eye, GripVertical, Filter, MessageSquare } from "lucide-react"
+import { Phone, Clock, Plus, MoreHorizontal, Eye, GripVertical, Filter, MessageSquare, User } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import ChatInterface from "@/components/ChatInterface"
 import pipelineService from "@/services/pipeline"
@@ -74,7 +74,7 @@ function LeadCard({ lead, onLeadClick, onUpdateLead, batchChatStatus }) {
       // If no Follow Up, check for HOT badge
       const hasHotBadge = chatStatus && chatStatus.chat_hot && chatStatus.chat_hot.intense === true && !isDontCreateBadge()
       if (hasHotBadge) {
-        return '52px' // Position below HOT badge (which is at 24px + 28px)
+        return '56px' // Position below HOT badge (which is now at 28px + 28px)
       } else {
         return '0px' // Position at top if no other badges
       }
@@ -125,7 +125,7 @@ function LeadCard({ lead, onLeadClick, onUpdateLead, batchChatStatus }) {
 
         {/* HOT Badge - hanya tampil jika tidak ada Follow Up badge */}
         {shouldShowHotBadge() && (
-          <div className="absolute top-6 right-0 bg-red-500 text-white px-2 py-1 rounded-bl text-xs font-bold">
+          <div className="absolute top-7 right-0 bg-red-500 text-white px-2 py-1 rounded-bl text-xs font-bold">
             HOT
           </div>
         )}
@@ -142,43 +142,48 @@ function LeadCard({ lead, onLeadClick, onUpdateLead, batchChatStatus }) {
         )}
       </div>
 
-      <CardContent className="p-4 pt-6" onClick={handleClick}>
-        <div className="flex items-start gap-3">
+      <CardContent className="p-3" onClick={handleClick}>
+        <div className="flex items-start gap-2">
+          {/* Drag Handle */}
           <div className="mt-1 text-gray-400 hover:text-gray-600 cursor-grab">
             <GripVertical className="h-4 w-4" />
           </div>
-          <div className="flex-1 min-w-0">
-            {/* Lead Info */}
-            <div className="flex justify-between items-start mb-2">
-              <h4 className={`font-medium truncate ${lead.name ? 'text-black' : 'text-red-500'}`}>
+          
+          {/* Content */}
+          <div className="flex-1 space-y-2">
+            {/* Header with name and amount */}
+            <div className="flex justify-between items-start gap-2">
+              <h4 className={`font-medium text-sm truncate flex-1 min-w-0 ${lead.name ? 'text-black' : 'text-red-500'}`}>
                 {lead.name || `No Name (${lead.source_name || 'Unknown'})`}
               </h4>
-              <span className="text-sm text-blue-600 font-semibold ml-2">
+              <span className="text-xs text-gray-600 whitespace-nowrap flex-shrink-0">
                 {formatRupiah(lead.amount)}
               </span>
             </div>
 
-            <div className="flex items-center gap-1 text-sm text-gray-500 mb-2">
+            {/* Phone number */}
+            <div className="flex items-center gap-1 text-xs text-gray-600">
               <Phone className="h-3 w-3" />
               <span>{lead.phone || ''}</span>
             </div>
 
-            {/* Latest Chat Message */}
-            {latestChatMessage && (
-              <div className="bg-red-50 border-2 border-red-200 p-2 rounded text-xs text-red-700 font-bold mb-2 max-h-15 overflow-hidden">
-                {latestChatMessage}
-              </div>
-            )}
-
-            <div className="flex items-center gap-1 text-sm text-gray-500 mt-2">
+            {/* Date */}
+            <div className="flex items-center gap-1 text-xs text-gray-500">
               <Clock className="h-3 w-3" />
               <span className="truncate">{formatDate(lead.created_at)}</span>
             </div>
 
             {/* Sales Info */}
-            <div className="text-xs text-blue-600 font-semibold mt-1">
+            <div className="text-xs text-blue-600 font-medium">
               {lead.user && lead.user.name}
             </div>
+
+            {/* Latest Chat Message */}
+            {latestChatMessage && (
+              <div className="bg-red-50 border border-red-200 p-2 rounded text-xs text-red-700 font-medium mt-2 max-h-12 overflow-hidden">
+                {latestChatMessage}
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
@@ -439,7 +444,9 @@ export default function PipelinePage() {
             created_at: lead.created_at,
             updated_at: lead.updated_at,
             time: lead.updated_at,
-            avatar: '/diverse-woman-portrait.png', // Default avatar
+            avatar: <User />, // Default avatar
+            // User data from API
+            user: lead.user || null,
             // Additional fields for lead information
             keyword: lead.keyword || '',
             city: lead.city?.name || lead.city_name || '',

@@ -12,6 +12,9 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const initAuth = async () => {
+      // Cek apakah sudah pernah verify dalam session ini
+      const sessionVerified = sessionStorage.getItem('auth_verified')
+      
       // Cek bridge token dari URL parameter (redirect dari Laravel)
       const urlParams = new URLSearchParams(window.location.search)
       const bridgeToken = urlParams.get('bridgeToken')
@@ -31,6 +34,7 @@ export const AuthProvider = ({ children }) => {
             setToken(apiToken)
             setUser(userData)
             setTokenVerified() // Mark token as recently verified
+            sessionStorage.setItem('auth_verified', 'true') // Mark session as verified
             
             // Hapus bridge token dari URL
             window.history.replaceState({}, document.title, window.location.pathname)
@@ -53,16 +57,16 @@ export const AuthProvider = ({ children }) => {
         setToken(savedToken)
         setUser(JSON.parse(savedUser))
         
-        // Skip verification if token was recently verified
-        if (isTokenRecentlyVerified()) {
-          console.log('Token recently verified, skipping verification')
+        // Jika sudah pernah verify dalam session ini, skip verification
+        if (sessionVerified) {
+          console.log('Already verified in this session, skipping verification')
           setLoading(false)
           return
         }
         
-        // Only verify token if it hasn't been verified recently
+        // Hanya verify token saat pertama kali masuk web (belum pernah verify dalam session)
         try {
-          console.log('Verifying token...')
+          console.log('First time in session, verifying token...')
           const result = await verifyToken(savedToken)
           if (result.success) {
             // Update user data if verification returns user info
@@ -71,6 +75,7 @@ export const AuthProvider = ({ children }) => {
               localStorage.setItem('user', JSON.stringify(result.data.user))
             }
             setTokenVerified() // Mark token as recently verified
+            sessionStorage.setItem('auth_verified', 'true') // Mark session as verified
             console.log('Token verified successfully')
           } else {
             // Token invalid, hapus dari localStorage
@@ -92,12 +97,10 @@ export const AuthProvider = ({ children }) => {
             clearTokenCache()
             setToken(null)
             setUser(null)
-          } else if (error.error && error.error.isServerError) {
-            // For server errors (500, etc.), keep the token but don't cache verification
-            console.log('Server error during verification, keeping token but not caching')
           } else {
-            // For other errors, also keep the token but log the issue
-            console.log('Unknown error during verification, keeping token but not caching')
+            // For server errors (500, etc.), keep the token and mark session as verified
+            console.log('Server error during verification, keeping token and marking session verified')
+            sessionStorage.setItem('auth_verified', 'true')
           }
         }
       }

@@ -29,6 +29,71 @@ import {
 const transformDashboardData = (summaryData) => {
   if (!summaryData?.data) return null
 
+  // Check if we have the new format with labels, wonCount, loseCount, wonValue, loseValue
+  if (summaryData.data.labels && summaryData.data.wonCount && summaryData.data.loseCount) {
+    const { labels, wonCount, loseCount, onProgressCount, wonValue, loseValue } = summaryData.data
+    
+    // Create pie chart data for won leads
+    const wonDataPerSales = labels.map((name, index) => ({
+      name: name.substring(0, 20),
+      value: wonCount[index] || 0,
+      amount: new Intl.NumberFormat('id-ID', { 
+        style: 'currency', 
+        currency: 'IDR',
+        minimumFractionDigits: 0 
+      }).format(parseInt(wonValue[index]) || 0),
+      color: `hsl(${120 + index * 40}, 70%, 50%)`
+    })).filter(item => item.value > 0)
+
+    // Create pie chart data for lose leads  
+    const loseDataPerSales = labels.map((name, index) => ({
+      name: name.substring(0, 20),
+      value: loseCount[index] || 0,
+      amount: new Intl.NumberFormat('id-ID', { 
+        style: 'currency', 
+        currency: 'IDR',
+        minimumFractionDigits: 0 
+      }).format(parseInt(loseValue[index]) || 0),
+      color: `hsl(${0 + index * 40}, 70%, 50%)`
+    })).filter(item => item.value > 0)
+
+    // Create comparison data
+    const comparisonData = labels.map((name, index) => ({
+      name: name.substring(0, 15),
+      won: wonCount[index] || 0,
+      inProgress: onProgressCount[index] || 0,
+      lose: loseCount[index] || 0,
+      total: (wonCount[index] || 0) + (loseCount[index] || 0) + (onProgressCount[index] || 0)
+    }))
+
+    // Create won vs lose data for bar chart
+    const wonLoseData = labels.map((name, index) => ({
+      name: name.substring(0, 20),
+      won: wonCount[index] || 0,
+      lose: loseCount[index] || 0,
+      total: (wonCount[index] || 0) + (loseCount[index] || 0)
+    }))
+
+    const totalLeads = wonCount.reduce((sum, count) => sum + count, 0) + 
+                      loseCount.reduce((sum, count) => sum + count, 0) + 
+                      onProgressCount.reduce((sum, count) => sum + count, 0)
+
+    return {
+      salesChart: [{ month: 'Current', sales: totalLeads, leads: totalLeads }],
+      pieData: wonDataPerSales.length > 0 ? wonDataPerSales : [{ name: 'No Data', value: 1, color: '#gray' }],
+      revenueData: loseDataPerSales.length > 0 ? loseDataPerSales : [{ name: 'No Data', value: 1, color: '#gray' }],
+      comparisonData: comparisonData.length > 0 ? comparisonData : [{ name: 'Total', won: 0, inProgress: totalLeads, lose: 0, total: totalLeads }],
+      wonLoseData: wonLoseData.length > 0 ? wonLoseData : [{ name: 'No Data', won: 0, lose: 0, total: 1 }],
+      dailyClosingData: [{ date: 'Today', won: 0, lose: 0, total: 0 }],
+      dailyClosingValueData: [{ date: 'Today', wonValue: 0, loseValue: 0, totalValue: 0 }],
+      employeesTarget: [
+        { month: 'Current', target: totalLeads + 10, achieved: totalLeads }
+      ],
+      recentActivities: []
+    }
+  }
+
+  // Fallback to old format processing if new format is not available
   const { leads, cardData, hotLeads, followUpLeads, totalLeads, totalCallCount } = summaryData.data
 
   // Transform leads data for analytics
@@ -52,16 +117,20 @@ const transformDashboardData = (summaryData) => {
     const createdMonth = new Date(lead.created_at).toLocaleDateString('en-US', { month: 'short' })
     monthlyData[createdMonth] = (monthlyData[createdMonth] || 0) + 1
 
-    // Won vs Lose per sales user
+    // Won vs Lose per sales user with amount calculation
     if (!wonLoseByUser[userName]) {
-      wonLoseByUser[userName] = { won: 0, lose: 0, total: 0 }
+      wonLoseByUser[userName] = { won: 0, lose: 0, total: 0, wonAmount: 0, loseAmount: 0 }
     }
     wonLoseByUser[userName].total += 1
     
+    const leadAmount = lead.amount || 0
+    
     if (stageName.toLowerCase().includes('won') || stageName.toLowerCase().includes('deal')) {
       wonLoseByUser[userName].won += 1
+      wonLoseByUser[userName].wonAmount += leadAmount
     } else if (stageName.toLowerCase().includes('lose') || stageName.toLowerCase().includes('lost')) {
       wonLoseByUser[userName].lose += 1
+      wonLoseByUser[userName].loseAmount += leadAmount
     }
 
     // Daily closing data (untuk leads yang closed)
@@ -102,12 +171,6 @@ const transformDashboardData = (summaryData) => {
     leads: count
   }))
 
-  const pieData = Object.entries(userDistribution).map(([name, value], index) => ({
-    name,
-    value,
-    color: ['#00559a', '#ffb401', '#005499', '#22c55e', '#a855f7'][index % 5]
-  }))
-
   const comparisonData = Object.entries(stageDistribution).map(([name, total]) => ({
     name: name.substring(0, 15), // Truncate long stage names
     won: name.toLowerCase().includes('won') ? total : 0,
@@ -123,6 +186,33 @@ const transformDashboardData = (summaryData) => {
     lose: data.lose,
     total: data.total
   }))
+
+  // Create separate won and lose data for pie charts
+  const wonDataPerSales = Object.entries(wonLoseByUser)
+    .filter(([name, data]) => data.won > 0)
+    .map(([name, data], index) => ({
+      name: name.substring(0, 20),
+      value: data.won,
+      amount: new Intl.NumberFormat('id-ID', { 
+        style: 'currency', 
+        currency: 'IDR',
+        minimumFractionDigits: 0 
+      }).format(data.wonAmount),
+      color: `hsl(${120 + index * 40}, 70%, 50%)`
+    }))
+
+  const loseDataPerSales = Object.entries(wonLoseByUser)
+    .filter(([name, data]) => data.lose > 0)
+    .map(([name, data], index) => ({
+      name: name.substring(0, 20),
+      value: data.lose,
+      amount: new Intl.NumberFormat('id-ID', { 
+        style: 'currency', 
+        currency: 'IDR',
+        minimumFractionDigits: 0 
+      }).format(data.loseAmount),
+      color: `hsl(${0 + index * 40}, 70%, 50%)`
+    }))
 
   // Daily closing leads (last 7 days)
   const dailyClosingData = Object.entries(dailyClosing)
@@ -148,8 +238,8 @@ const transformDashboardData = (summaryData) => {
 
   return {
     salesChart: salesChart.length > 0 ? salesChart : [{ month: 'Sep', sales: totalLeads, leads: totalLeads }],
-    pieData: pieData.length > 0 ? pieData : [{ name: 'No Data', value: 1, color: '#gray' }],
-    revenueData: pieData.length > 0 ? pieData : [{ name: 'No Data', value: 1, color: '#gray' }],
+    pieData: wonDataPerSales.length > 0 ? wonDataPerSales : [{ name: 'No Data', value: 1, color: '#gray' }],
+    revenueData: loseDataPerSales.length > 0 ? loseDataPerSales : [{ name: 'No Data', value: 1, color: '#gray' }],
     comparisonData: comparisonData.length > 0 ? comparisonData : [{ name: 'Total', won: 0, inProgress: totalLeads, lose: 0, total: totalLeads }],
     wonLoseData: wonLoseData.length > 0 ? wonLoseData : [{ name: 'No Data', won: 0, lose: 0, total: 1 }],
     dailyClosingData: dailyClosingData.length > 0 ? dailyClosingData : [{ date: 'Today', won: 0, lose: 0, total: 0 }],
@@ -1062,9 +1152,9 @@ export default function DashboardPage() {
     refetch: refetchDashboard
   } = useQuery({
     queryKey: ['dashboard-summary', filters.dateFrom, filters.dateTo],
-    queryFn: () => dashboardService.getDashboardSummary({
-      from: filters.dateFrom,
-      to: filters.dateTo
+    queryFn: () => dashboardService.getSalesStatistic({
+      year: new Date(filters.dateTo || new Date()).getFullYear(),
+      month: new Date(filters.dateTo || new Date()).getMonth() + 1
     }),
     staleTime: 5 * 60 * 1000,
     retry: 2,
@@ -1437,19 +1527,19 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 gap-6">
             <RechartsPieChart 
               data={transformedData?.pieData || []} 
-              title="Leads per Sales User"
+              title="Total Won per Sales (Rp)"
             />
             <RechartsPieChart 
               data={transformedData?.revenueData || []} 
-              title="Lead Distribution"
+              title="Total Lose per Sales (Rp)"
             />
           </div>
           
           {/* Comparison Bar Chart - Full width */}
-          <RechartsBarChart 
+          {/* <RechartsBarChart 
             data={transformedData?.comparisonData || []} 
             title="Lead Status by Stage"
-          />
+          /> */}
            <DailySalesStatisticChart
             data={salesStatisticData}
             title="Jumlah Closing Lead per Hari"
@@ -1527,14 +1617,18 @@ function RechartsPieChart({ data, title }) {
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       const data = payload[0]
+      // console.log('Tooltip data:', data) // Debug log
       return (
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
           <p className="font-medium text-gray-900">{data.name}</p>
           <p className="text-sm text-gray-600">
-            Count: <span className="font-medium">{data.value}</span>
+            Terhitung: <span className="font-medium">{data.value}</span>
           </p>
           <p className="text-sm text-gray-600">
-            Percentage: <span className="font-medium">{((data.value / data.payload.total) * 100).toFixed(1)}%</span>
+            Persentase: <span className="font-medium">{((data.value / data.payload.total) * 100).toFixed(1)}%</span>
+          </p>
+          <p className="text-sm text-gray-600">
+            Jumlah: <span className="font-medium">{data.payload.amount || 'No data'}</span>
           </p>
         </div>
       )
@@ -1822,75 +1916,75 @@ function DailyClosingValueChart({ data, title }) {
   )
 }
 
-function RechartsBarChart({ data, title }) {
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      const total = payload.reduce((sum, entry) => sum + entry.value, 0)
-      return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-          <p className="font-medium text-gray-900">{label} ({total})</p>
-          {payload.reverse().map((entry, index) => (
-            <p key={index} className="text-sm text-gray-600">
-              {entry.dataKey === 'won' ? 'Won' : entry.dataKey === 'inProgress' ? 'In Progress' : 'Lose'}: 
-              <span className="font-medium ml-1" style={{ color: entry.color }}>
-                {entry.value}
-              </span>
-            </p>
-          ))}
-        </div>
-      )
-    }
-    return null
-  }
+// function RechartsBarChart({ data, title }) {
+//   const CustomTooltip = ({ active, payload, label }) => {
+//     if (active && payload && payload.length) {
+//       const total = payload.reduce((sum, entry) => sum + entry.value, 0)
+//       return (
+//         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
+//           <p className="font-medium text-gray-900">{label} ({total})</p>
+//           {payload.reverse().map((entry, index) => (
+//             <p key={index} className="text-sm text-gray-600">
+//               {entry.dataKey === 'won' ? 'Won' : entry.dataKey === 'inProgress' ? 'In Progress' : 'Lose'}: 
+//               <span className="font-medium ml-1" style={{ color: entry.color }}>
+//                 {entry.value}
+//               </span>
+//             </p>
+//           ))}
+//         </div>
+//       )
+//     }
+//     return null
+//   }
 
-  return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-black">{title}</h3>
-          <BarChart3 className="h-5 w-5 text-gray-400" />
-        </div>
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis 
-                dataKey="name" 
-                angle={-45}
-                textAnchor="end"
-                height={80}
-                fontSize={12}
-                stroke="#666"
-              />
-              <YAxis stroke="#666" fontSize={12} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend />
-              {/* Stacked Bars */}
-              <Bar 
-                dataKey="won" 
-                stackId="a"
-                fill="#ffb401" 
-                name="Won"
-                radius={[0, 0, 0, 0]}
-              />
-              <Bar 
-                dataKey="inProgress" 
-                stackId="a"
-                fill="#9ca3af" 
-                name="In Progress"
-                radius={[0, 0, 0, 0]}
-              />
-              <Bar 
-                dataKey="lose" 
-                stackId="a"
-                fill="#06b6d4" 
-                name="Lose"
-                radius={[2, 2, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
+//   return (
+//     <Card>
+//       <CardContent className="p-6">
+//         <div className="flex items-center justify-between mb-6">
+//           <h3 className="text-lg font-semibold text-black">{title}</h3>
+//           <BarChart3 className="h-5 w-5 text-gray-400" />
+//         </div>
+//         <div className="h-80">
+//           <ResponsiveContainer width="100%" height="100%">
+//             <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+//               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+//               <XAxis 
+//                 dataKey="name" 
+//                 angle={-45}
+//                 textAnchor="end"
+//                 height={80}
+//                 fontSize={12}
+//                 stroke="#666"
+//               />
+//               <YAxis stroke="#666" fontSize={12} />
+//               <Tooltip content={<CustomTooltip />} />
+//               <Legend />
+//               {/* Stacked Bars */}
+//               <Bar 
+//                 dataKey="won" 
+//                 stackId="a"
+//                 fill="#ffb401" 
+//                 name="Won"
+//                 radius={[0, 0, 0, 0]}
+//               />
+//               <Bar 
+//                 dataKey="inProgress" 
+//                 stackId="a"
+//                 fill="#9ca3af" 
+//                 name="In Progress"
+//                 radius={[0, 0, 0, 0]}
+//               />
+//               <Bar 
+//                 dataKey="lose" 
+//                 stackId="a"
+//                 fill="#06b6d4" 
+//                 name="Lose"
+//                 radius={[2, 2, 0, 0]}
+//               />
+//             </BarChart>
+//           </ResponsiveContainer>
+//         </div>
+//       </CardContent>
+//     </Card>
+//   )
+// }

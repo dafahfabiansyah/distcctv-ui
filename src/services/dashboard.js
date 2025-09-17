@@ -277,6 +277,31 @@ class DashboardService {
   }
 
   /**
+   * Mengambil dashboard data dengan format baru (labels, wonCount, loseCount, wonValue, loseValue)
+   * @param {Object} params - Parameter query
+   * @returns {Promise} Response dari API
+   */
+  async getDashboardSummaryNew(params = {}) {
+    try {
+      const currentDate = new Date()
+      const queryParams = {
+        year: params.year || currentDate.getFullYear(),
+        month: params.month || (currentDate.getMonth() + 1)
+      }
+      
+      console.log('Dashboard sales statistic query params:', queryParams)
+      
+      const response = await api.get('/api/v2/crm/dashboard/sales-statistic', {
+        params: queryParams
+      })
+      return response.data
+    } catch (error) {
+      console.error('Error fetching dashboard sales statistic:', error)
+      throw error
+    }
+  }
+
+  /**
    * Mengambil main dashboard data
    * @returns {Promise} Response dari API
    */

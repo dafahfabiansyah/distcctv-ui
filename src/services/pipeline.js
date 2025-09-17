@@ -10,7 +10,10 @@ const API_CONFIG = {
 }
 
 // Create axios instance
-const api = axios.create(API_CONFIG)
+const api = axios.create({
+  ...API_CONFIG,
+  withCredentials: true // Tambahkan ini untuk support CORS credentials
+})
 
 // Add request interceptor untuk menambahkan bearer token
 api.interceptors.request.use(
@@ -20,6 +23,12 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    
+    // Don't set Content-Type if data is FormData - let browser set it with boundary
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type']
+    }
+    
     return config
   },
   (error) => {
@@ -104,7 +113,7 @@ class PipelineService {
   }
 
   /**
-   * Update data lead lengkap (semua field)
+   * Update data lead lengkap (semua field) - menggunakan Sanctum API
    * @param {string|number} leadId - ID lead
    * @param {Object} leadData - Data lead yang akan diupdate
    * @returns {Promise} Response dari API
@@ -119,7 +128,7 @@ class PipelineService {
         }
       });
 
-      // const response = await api.post(`/crm2/lead/${leadId}/update`, formData, {
+      // Menggunakan endpoint Sanctum yang tidak memerlukan CSRF token
       const response = await api.put(`/api/v2/crm/lead/update/${leadId}`, formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
@@ -188,7 +197,7 @@ class PipelineService {
   /**
    * Buat quotation baru (menggunakan Sanctum API)
    * @param {string|number} leadId - ID lead
-   * @param {Object} quotationData - Data quotation
+   * @param {FormData|Object} quotationData - Data quotation
    * @returns {Promise} Response dari API
    */
   async createQuotation(leadId, quotationData) {
@@ -204,11 +213,17 @@ class PipelineService {
   /**
    * Update quotation (menggunakan Sanctum API)
    * @param {string|number} quotationId - ID quotation
-   * @param {Object} quotationData - Data quotation yang diupdate
+   * @param {FormData|Object} quotationData - Data quotation yang diupdate
    * @returns {Promise} Response dari API
    */
   async updateQuotation(quotationId, quotationData) {
     try {
+      // For Laravel form-style update, we use POST with _method override
+      if (quotationData instanceof FormData) {
+        quotationData.append('_method', 'PUT')
+      }
+      
+      // Use POST method as Laravel route is configured for POST
       const response = await api.put(`/api/v2/crm/quotations/${quotationId}`, quotationData);
       return response.data;
     } catch (error) {
@@ -258,6 +273,264 @@ class PipelineService {
       return response.data;
     } catch (error) {
       console.error('Error pooling to main:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mengambil data emails berdasarkan lead ID
+   * @param {string|number} leadId - ID lead
+   * @returns {Promise} Response dari API
+   */
+  async getEmails(leadId) {
+    try {
+      const response = await api.get(`/api/v2/crm/leads/${leadId}/emails`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching emails:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mengambil data activities berdasarkan lead ID
+   * @param {string|number} leadId - ID lead
+   * @returns {Promise} Response dari API
+   */
+  async getActivities(leadId) {
+    try {
+      const response = await api.get(`/api/v2/crm/leads/${leadId}/activities`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mengambil AI Helper untuk lead tertentu
+   * @param {string|number} leadId - ID lead
+   * @returns {Promise} Response dari API
+   */
+  async getAiHelper(leadId) {
+    try {
+      const response = await api.get(`/api/v2/crm/leads/${leadId}/ai-helper`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching AI helper:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mengambil data WhatsApp chats berdasarkan lead ID
+   * @param {string|number} leadId - ID lead
+   * @returns {Promise} Response dari API
+   */
+  async getChats(leadId) {
+    try {
+      const response = await api.get(`/api/v2/crm/leads/${leadId}/chats`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching chats:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Log call untuk lead tertentu
+   * @param {string|number} leadId - ID lead
+   * @returns {Promise} Response dari API
+   */
+  async logCall(leadId) {
+    try {
+      const response = await api.post(`/api/v2/crm/lead/${leadId}/log-call`);
+      return response.data;
+    } catch (error) {
+      console.error('Error logging call:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mengambil status chat untuk lead tertentu dari gateway
+   * @param {string} phone - Nomor telepon lead
+   * @param {number} leadTimestamp - Timestamp lead (dalam detik)
+   * @returns {Promise} Response dari API
+   */
+  async getLeadChatStatus(phone, leadTimestamp) {
+    try {
+      // Menggunakan gateway URL untuk chat status
+      const gatewayUrl = import.meta.env.VITE_GATEWAY_URL || 'http://127.0.0.1:8000';
+      const response = await axios.get(`${gatewayUrl}/inbox/chat-summary`, {
+        params: {
+          phone: phone,
+          leadTimestamp: leadTimestamp
+        },
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching lead chat status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mengambil chat hot status untuk lead tertentu dari gateway
+   * @param {string} phone - Nomor telepon lead
+   * @returns {Promise} Response dari API
+   */
+  async getChatHot(phone) {
+    try {
+      // Menggunakan gateway URL untuk chat hot status
+      const gatewayUrl = import.meta.env.VITE_GATEWAY_URL || 'http://127.0.0.1:8000';
+      const response = await axios.get(`${gatewayUrl}/inbox/chat-hot`, {
+        params: {
+          phone: phone
+        },
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching chat hot status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Kirim pesan WhatsApp ke lead (menggunakan Sanctum API)
+   * @param {string|number} leadId - ID lead
+   * @param {string} message - Pesan yang akan dikirim
+   * @param {File|null} file - File attachment (opsional)
+   * @param {string|null} replyId - ID pesan yang di-reply (opsional)
+   * @returns {Promise} Response dari API
+   */
+  async sendWhatsappMessage(leadId, message, file = null, replyId = null) {
+    try {
+      // Validasi input
+      if (!leadId) {
+        throw new Error('Lead ID is required');
+      }
+      
+      if (!message && !file) {
+        throw new Error('Message or file is required');
+      }
+
+      // Prepare form data
+      const formData = new FormData();
+      formData.append('message', message || '');
+      
+      if (replyId) {
+        formData.append('reply_id', replyId);
+      }
+      
+      if (file) {
+        formData.append('file', file);
+      }
+
+      // Debug log
+      console.log('Sending WhatsApp message via Sanctum API:', {
+        leadId,
+        message: message || '(empty message)',
+        hasFile: !!file,
+        replyId: replyId || '(no reply)',
+        endpoint: `/api/v2/whatsapp/send/${leadId}`
+      });
+
+      // Kirim ke endpoint Sanctum API
+      const response = await api.post(`/api/v2/whatsapp/send/${leadId}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 30000 // 30 detik timeout untuk upload file
+      });
+      
+      console.log('WhatsApp send response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error sending WhatsApp message:', error);
+      
+      // Log detail error untuk debugging
+      if (error.response) {
+        console.error('Response error details:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+          headers: error.response.headers
+        });
+      }
+      
+      // Better error handling
+      if (error.response?.status === 422) {
+        throw new Error('Validation error: ' + (error.response.data?.message || 'Invalid input'));
+      } else if (error.response?.status === 401) {
+        throw new Error('Unauthorized: Please login again');
+      } else if (error.response?.status === 500) {
+        throw new Error('Server error: Unable to send message');
+      } else if (error.code === 'ECONNABORTED') {
+        throw new Error('Request timeout: Please try again');
+      } else {
+        throw new Error(error.message || 'Failed to send WhatsApp message');
+      }
+    }
+  }
+
+  /**
+   * Simpan komentar/activity untuk lead
+   * @param {string|number} leadId - ID lead
+   * @param {Object} activityData - Data activity (tag, comment)
+   * @returns {Promise} Response dari API
+   */
+  async saveComment(leadId, activityData) {
+    try {
+      if (!leadId) {
+        throw new Error('Lead ID is required');
+      }
+
+      if (!activityData.comment) {
+        throw new Error('Comment is required');
+      }
+
+      // Prepare form data - sama seperti dashboard lama
+      const formData = new FormData();
+      formData.append('tagto', activityData.tag || ''); // Sesuai dengan name di form lama
+      formData.append('comment', activityData.comment);
+
+      // Gunakan endpoint Sanctum yang menggunakan controller lama
+      const response = await api.post(`/api/v2/crm/lead/${leadId}/comment`, formData);
+
+      return response.data;
+    } catch (error) {
+      console.error('Error saving comment:', error);
+      
+      // Better error handling
+      if (error.response?.status === 422) {
+        throw new Error('Validation error: ' + (error.response.data?.message || 'Invalid input'));
+      } else if (error.response?.status === 401) {
+        throw new Error('Unauthorized: Please login again');
+      } else if (error.response?.status === 500) {
+        throw new Error('Server error: Unable to save comment');
+      } else {
+        throw new Error(error.message || 'Failed to save comment');
+      }
+    }
+  }
+
+  /**
+   * Mengambil data sales untuk dropdown filter
+   * @returns {Promise} Response dari API
+   */
+  async getSales() {
+    try {
+      const response = await api.get('/api/v2/crm/sales');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching sales:', error);
       throw error;
     }
   }

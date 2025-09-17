@@ -4,13 +4,13 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
-// import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts"
 import { dashboardService } from "@/services/dashboard"
+import DailySalesStatisticChart from "./DailySalesStatisticChart"
 import { 
-
+  Calendar,
   Filter, 
   Settings,
   DollarSign,
@@ -964,9 +964,9 @@ function RecentActivities({ activities }) {
       <CardContent className="p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-black">Recent Activities</h3>
-          <Button variant="link" size="sm" className="text-crm-primary">
+          {/* <Button variant="link" size="sm" className="text-crm-primary">
             View all
-          </Button>
+          </Button> */}
         </div>
         <div className="space-y-4">
           {activities.map((activity) => (
@@ -1027,6 +1027,12 @@ export default function DashboardPage() {
 
   // Sales target date filter (tahun dan bulan)
   const [salesTargetDate, setSalesTargetDate] = useState({
+    year: new Date().getFullYear(),
+    month: new Date().getMonth() + 1 // JavaScript month is 0-indexed
+  })
+
+  // Sales statistic date filter (tahun dan bulan)
+  const [salesStatisticDate, setSalesStatisticDate] = useState({
     year: new Date().getFullYear(),
     month: new Date().getMonth() + 1 // JavaScript month is 0-indexed
   })
@@ -1100,7 +1106,25 @@ export default function DashboardPage() {
     refetchOnMount: false, // Only refetch when query key changes
   })
 
-  const isLoading = isDashboardLoading || isSalesTargetLoading || isSalesAchievementLoading
+  // Fetch sales statistic per day data
+  const { 
+    data: salesStatisticData, 
+    isLoading: isSalesStatisticLoading,
+    error: salesStatisticError,
+    refetch: refetchSalesStatistic
+  } = useQuery({
+    queryKey: ['sales-statistic', salesStatisticDate.year, salesStatisticDate.month],
+    queryFn: () => dashboardService.getSalesStatistic({
+      year: salesStatisticDate.year,
+      month: salesStatisticDate.month
+    }),
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  })
+
+  const isLoading = isDashboardLoading || isSalesTargetLoading || isSalesAchievementLoading || isSalesStatisticLoading
 
   // Transform dashboard summary data for charts
   const transformedData = transformDashboardData(dashboardSummaryData)
@@ -1145,12 +1169,13 @@ export default function DashboardPage() {
     }
   ] : []
 
-  const hasError = dashboardError || salesTargetError || salesAchievementError
+  const hasError = dashboardError || salesTargetError || salesAchievementError || salesStatisticError
 
   const handleRefreshData = () => {
     refetchDashboard()
     refetchSalesTarget()
     refetchSalesAchievement()
+    refetchSalesStatistic()
   }
 
   // Filter handling functions - untuk modal lokal
@@ -1196,6 +1221,21 @@ export default function DashboardPage() {
 
   const resetSalesTargetDate = () => {
     setSalesTargetDate({
+      year: new Date().getFullYear(),
+      month: new Date().getMonth() + 1
+    })
+  }
+
+  // Sales statistic date handlers
+  const handleSalesStatisticDateChange = (field, value) => {
+    setSalesStatisticDate(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const resetSalesStatisticDate = () => {
+    setSalesStatisticDate({
       year: new Date().getFullYear(),
       month: new Date().getMonth() + 1
     })
@@ -1410,14 +1450,21 @@ export default function DashboardPage() {
             data={transformedData?.comparisonData || []} 
             title="Lead Status by Stage"
           />
+           <DailySalesStatisticChart
+            data={salesStatisticData}
+            title="Jumlah Closing Lead per Hari"
+            salesStatisticDate={salesStatisticDate}
+            onDateChange={handleSalesStatisticDateChange}
+            onResetDate={resetSalesStatisticDate}
+          />
 
           {/* New Charts Section - 3 charts in a row */}
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 gap-6">
             {/* Won vs Lose per Sales */}
-            <WonLoseChart
+            {/* <WonLoseChart
               data={transformedData?.wonLoseData || []}
               title="Won vs Lost per Sales"
-            />
+            /> */}
             
             {/* Daily Closing Count */}
             <DailyClosingChart
@@ -1450,6 +1497,9 @@ export default function DashboardPage() {
             onDateChange={handleSalesTargetDateChange}
             onResetDate={resetSalesTargetDate}
           />
+
+          {/* Sales Statistic Per Day Chart */}
+         
         </div>
 
         {/* Bottom Section - Recent Activities */}

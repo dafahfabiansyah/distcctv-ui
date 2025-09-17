@@ -94,6 +94,26 @@ class DashboardService {
   }
 
   /**
+   * Mengambil sales statistic per day dengan endpoint baru
+   * @param {Object} params - Parameter filter (month, year)
+   * @returns {Promise} Response dari API
+   */
+  async getSalesStatisticPerDayNew(params = {}) {
+    try {
+      const response = await api.get('/dashboard-2/sales-statistic', {
+        params: {
+          month: params.month,
+          year: params.year
+        }
+      })
+      return response.data
+    } catch (error) {
+      console.error('Error fetching sales statistic per day (new endpoint):', error)
+      throw error
+    }
+  }
+
+  /**
    * Mengambil sales target data
    * @param {Object} params - Parameter filter (year, month)
    * @returns {Promise} Response dari API
@@ -201,7 +221,11 @@ class DashboardService {
   async getSalesStatistic(params = {}) {
     try {
       const response = await api.get('/api/v2/crm/dashboard/sales-statistic', {
-        params: params
+        params: {
+          ...params,
+          month: params.month,
+          year: params.year
+        }
       })
       return response.data
     } catch (error) {

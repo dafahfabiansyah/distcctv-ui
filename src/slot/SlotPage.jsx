@@ -551,27 +551,6 @@ export default function SlotPage() {
     setTimeout(() => setNotification(null), 3000)
   }
 
-  // Get schedules for a specific date
-  const getSchedulesForDate = (day, month, year) => {
-    const dateStr = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
-    return schedules.filter(schedule => schedule.date === dateStr)
-  }
-
-  // Color generator for schedule events
-  const getScheduleColor = (index) => {
-    const colors = [
-      'bg-blue-400',
-      'bg-green-400', 
-      'bg-purple-400',
-      'bg-red-400',
-      'bg-yellow-400',
-      'bg-indigo-400',
-      'bg-pink-400',
-      'bg-orange-400'
-    ]
-    return colors[index % colors.length]
-  }
-
   return (
     <div className="flex-1 bg-white p-6">
       {/* Header */}

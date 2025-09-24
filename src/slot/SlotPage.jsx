@@ -579,10 +579,6 @@ export default function SlotPage() {
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-semibold text-black">Scheduling Management</h1>
           <div className="flex items-center gap-3">
-            <Button variant="outline" className="text-gray-600">
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
-            </Button>
             <Dialog open={showCreateSchedule} onOpenChange={(open) => {
               setShowCreateSchedule(open)
               if (!open) {

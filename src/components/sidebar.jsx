@@ -2,7 +2,7 @@
 
 import { Button } from "./ui/button"
 import { Badge } from "./ui/badge"
-import { LayoutDashboard, Users, MessageSquare, Settings, ChevronDown, ChevronRight } from "lucide-react"
+import { LayoutDashboard, Users, MessageSquare, Settings, ChevronDown, ChevronRight, Calendar } from "lucide-react"
 import { Link, useLocation } from "react-router"
 import { useState, useEffect } from "react"
 import { useAuth } from "../contexts/AuthContext"
@@ -13,6 +13,12 @@ const menuItems = [
     name: "Dashboard",
     icon: <LayoutDashboard className="h-5 w-5" />,
     url: "/"
+  },
+  {
+    id: "slot",
+    name: "Scheduling",
+    icon: <Calendar className="h-5 w-5" />,
+    url: "/slot"
   },
   {
     id: "omnichannel",

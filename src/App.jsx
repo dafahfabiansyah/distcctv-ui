@@ -5,6 +5,7 @@ import LoginPage from './components/LoginPage'
 import DashboardPage from './dashboard/DashboardPage'
 import PipelinePage from './pipeline/PipelinePage'
 import OmnichannelPage from './omnichannel/OmnichannelPage'
+import SlotPage from './slot/SlotPage'
 import './App.css'
 import Topbar from './components/topbar'
 
@@ -22,9 +23,9 @@ const AppContent = () => {
     )
   }
 
-  if (!isAuthenticated) {
-    return <LoginPage />
-  }
+  // if (!isAuthenticated) {
+  //   return <LoginPage />
+  // }
 
   return (
     <Router>
@@ -32,12 +33,13 @@ const AppContent = () => {
         <Sidebar />
         <main className="flex-1 overflow-x-hidden overflow-y-auto">
         <Topbar/>
-          <Routes>
+           <Routes>
              <Route path="/" element={<Navigate to="/dashboard" replace />} />
              <Route path="/dashboard" element={<DashboardPage />} />
              {/* <Route path="/pipeline" element={<PipelinePage />} /> */}
              <Route path="/pipeline/:pipelineId" element={<PipelinePage />} />
              <Route path="/omnichannel" element={<OmnichannelPage />} />
+             <Route path="/slot" element={<SlotPage />} />
            </Routes>
         </main>
       </div>
